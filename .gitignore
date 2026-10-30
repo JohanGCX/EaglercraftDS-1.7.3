@@ -1,0 +1,8 @@
+# build output
+build/
+*.elf
+*.nds
+*.map
+
+# native alphakey (Linux/macOS), built by the Makefile
+tools/alphakey

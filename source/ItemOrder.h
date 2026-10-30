@@ -1,0 +1,273 @@
+#ifndef ITEMORDER_H
+#define ITEMORDER_H
+
+#include "BlockType.h"
+
+// Orden de los bloques y objetos como los agrego la Beta 1.7.3 (numero de Block / Item del original, y la metadata dentro del mismo numero).
+// Lo usan la lista de crafteo y los cofres de depuracion para mostrar todo en el mismo orden que el juego original.
+namespace ItemOrder {
+    inline int key(BlockType t) {
+        int id = -1, meta = 0;
+        switch (t) {
+            // ---- bloques (ids 1 a 96) ----
+            case BlockType::STONE: id = 1; break;
+            case BlockType::GRASS: id = 2; break;
+            case BlockType::DIRT: id = 3; break;
+            case BlockType::COBBLESTONE: id = 4; break;
+            case BlockType::WOOD_PLANKS: id = 5; break;
+            case BlockType::SAPLING_OAK: id = 6; meta = 0; break;
+            case BlockType::SAPLING_SPRUCE: id = 6; meta = 1; break;
+            case BlockType::SAPLING_BIRCH: id = 6; meta = 2; break;
+            case BlockType::BEDROCK: id = 7; break;
+            case BlockType::WATER_FLOW: id = 8; break;
+            case BlockType::WATER: id = 9; break;
+            case BlockType::LAVA_FLOW: id = 10; break;
+            case BlockType::LAVA: id = 11; break;
+            case BlockType::SAND: id = 12; break;
+            case BlockType::GRAVEL: id = 13; break;
+            case BlockType::GOLD_ORE: id = 14; break;
+            case BlockType::IRON_ORE: id = 15; break;
+            case BlockType::COAL_ORE: id = 16; break;
+            case BlockType::OAK_LOG: id = 17; meta = 0; break;
+            case BlockType::SPRUCE_LOG: id = 17; meta = 1; break;
+            case BlockType::BIRCH_LOG: id = 17; meta = 2; break;
+            case BlockType::OAK_LEAVES: id = 18; meta = 0; break;
+            case BlockType::SPRUCE_LEAVES: id = 18; meta = 1; break;
+            case BlockType::BIRCH_LEAVES: id = 18; meta = 2; break;
+            case BlockType::SPONGE: id = 19; break;
+            case BlockType::GLASS: id = 20; break;
+            case BlockType::LAPIS_ORE: id = 21; break;
+            case BlockType::BLOCK_LAPIS: id = 22; break;
+            case BlockType::DISPENSER: case BlockType::DISPENSER_W: case BlockType::DISPENSER_N: case BlockType::DISPENSER_E: id = 23; break;
+            case BlockType::SANDSTONE: id = 24; break;
+            case BlockType::NOTE_BLOCK: id = 25; break;
+            case BlockType::BED_BLOCK: id = 26; break;
+            case BlockType::RAIL_POWERED: id = 27; break;
+            case BlockType::RAIL_DETECTOR: id = 28; break;
+            case BlockType::PISTON_STICKY: id = 29; break;
+            case BlockType::WEB: id = 30; break;
+            case BlockType::TALLGRASS: id = 31; break;
+            case BlockType::DEAD_BUSH: id = 32; break;
+            case BlockType::PISTON_BASE: id = 33; break;
+            case BlockType::PISTON_HEAD: id = 34; break;
+            case BlockType::WOOL_WHITE: id = 35; meta = 0; break;
+            case BlockType::WOOL_ORANGE: id = 35; meta = 1; break;
+            case BlockType::WOOL_MAGENTA: id = 35; meta = 2; break;
+            case BlockType::WOOL_LIGHT_BLUE: id = 35; meta = 3; break;
+            case BlockType::WOOL_YELLOW: id = 35; meta = 4; break;
+            case BlockType::WOOL_LIME: id = 35; meta = 5; break;
+            case BlockType::WOOL_PINK: id = 35; meta = 6; break;
+            case BlockType::WOOL_GRAY: id = 35; meta = 7; break;
+            case BlockType::WOOL_LIGHT_GRAY: id = 35; meta = 8; break;
+            case BlockType::WOOL_CYAN: id = 35; meta = 9; break;
+            case BlockType::WOOL_PURPLE: id = 35; meta = 10; break;
+            case BlockType::WOOL_BLUE: id = 35; meta = 11; break;
+            case BlockType::WOOL_BROWN: id = 35; meta = 12; break;
+            case BlockType::WOOL_GREEN: id = 35; meta = 13; break;
+            case BlockType::WOOL_RED: id = 35; meta = 14; break;
+            case BlockType::WOOL_BLACK: id = 35; meta = 15; break;
+            case BlockType::PISTON_MOVING: id = 36; break;
+            case BlockType::DANDELION: id = 37; break;
+            case BlockType::ROSE: id = 38; break;
+            case BlockType::MUSHROOM_BROWN: id = 39; break;
+            case BlockType::MUSHROOM_RED: id = 40; break;
+            case BlockType::BLOCK_GOLD: id = 41; break;
+            case BlockType::BLOCK_IRON: id = 42; break;
+            case BlockType::DOUBLE_SLAB_STONE: id = 43; meta = 0; break;
+            case BlockType::DOUBLE_SLAB_SAND: id = 43; meta = 1; break;
+            case BlockType::DOUBLE_SLAB_WOOD: id = 43; meta = 2; break;
+            case BlockType::DOUBLE_SLAB_COBBLE: id = 43; meta = 3; break;
+            case BlockType::SLAB_STONE: id = 44; meta = 0; break;
+            case BlockType::SLAB_SAND: id = 44; meta = 1; break;
+            case BlockType::SLAB_WOOD: id = 44; meta = 2; break;
+            case BlockType::SLAB_COBBLE: id = 44; meta = 3; break;
+            case BlockType::BRICK_BLOCK: id = 45; break;
+            case BlockType::TNT: id = 46; break;
+            case BlockType::BOOKSHELF: id = 47; break;
+            case BlockType::MOSSY_COBBLESTONE: id = 48; break;
+            case BlockType::OBSIDIAN: id = 49; break;
+            case BlockType::TORCH: case BlockType::TORCH_W: case BlockType::TORCH_E: case BlockType::TORCH_N: case BlockType::TORCH_S: case BlockType::TORCH_F: id = 50; break;
+            case BlockType::FIRE: id = 51; break;
+            case BlockType::MOB_SPAWNER: id = 52; break;
+            case BlockType::STAIRS_WOOD: id = 53; break;
+            case BlockType::CHEST: id = 54; break;
+            case BlockType::REDSTONE_WIRE: id = 55; break;
+            case BlockType::DIAMOND_ORE: id = 56; break;
+            case BlockType::BLOCK_DIAMOND: id = 57; break;
+            case BlockType::CRAFTING_TABLE: id = 58; break;
+            case BlockType::CROPS: id = 59; break;
+            case BlockType::FARMLAND: id = 60; break;
+            case BlockType::FURNACE: case BlockType::FURNACE_W: case BlockType::FURNACE_N: case BlockType::FURNACE_E: id = 61; break;
+            case BlockType::FURNACE_LIT_S: case BlockType::FURNACE_LIT_W: case BlockType::FURNACE_LIT_N: case BlockType::FURNACE_LIT_E: id = 62; break;
+            case BlockType::SIGN_POST: id = 63; break;
+            case BlockType::DOOR_WOOD: id = 64; break;
+            case BlockType::LADDER: id = 65; break;
+            case BlockType::RAIL: id = 66; break;
+            case BlockType::STAIRS_COBBLE: id = 67; break;
+            case BlockType::SIGN_WALL: id = 68; break;
+            case BlockType::LEVER: id = 69; break;
+            case BlockType::PLATE_STONE: id = 70; break;
+            case BlockType::DOOR_IRON: id = 71; break;
+            case BlockType::PLATE_WOOD: id = 72; break;
+            case BlockType::REDSTONE_ORE: id = 73; break;
+            case BlockType::REDSTONE_ORE_LIT: id = 74; break;
+            case BlockType::TORCH_REDSTONE_OFF: id = 75; break;
+            case BlockType::TORCH_REDSTONE_ON: id = 76; break;
+            case BlockType::BUTTON: id = 77; break;
+            case BlockType::SNOW_LAYER: id = 78; break;
+            case BlockType::ICE: id = 79; break;
+            case BlockType::SNOW_BLOCK: id = 80; break;
+            case BlockType::CACTUS: id = 81; break;
+            case BlockType::CLAY: id = 82; break;
+            case BlockType::SUGAR_CANE: id = 83; break;
+            case BlockType::JUKEBOX: id = 84; break;
+            case BlockType::FENCE: id = 85; break;
+            case BlockType::PUMPKIN: id = 86; break;
+            case BlockType::NETHERRACK: id = 87; break;
+            case BlockType::SOUL_SAND: id = 88; break;
+            case BlockType::GLOWSTONE: id = 89; break;
+            case BlockType::PORTAL: id = 90; break;
+            case BlockType::JACK_O_LANTERN: id = 91; break;
+            case BlockType::CAKE_BLOCK: id = 92; break;
+            case BlockType::REPEATER_OFF: id = 93; break;
+            case BlockType::REPEATER_ON: id = 94; break;
+            case BlockType::TRAPDOOR: id = 96; break;
+            // ---- objetos (ids 256 en adelante) ----
+            case BlockType::IRON_SHOVEL: id = 256; break;
+            case BlockType::IRON_PICKAXE: id = 257; break;
+            case BlockType::IRON_AXE: id = 258; break;
+            case BlockType::FLINT_AND_STEEL: id = 259; break;
+            case BlockType::APPLE: id = 260; break;
+            case BlockType::BOW: id = 261; break;
+            case BlockType::ARROW: id = 262; break;
+            case BlockType::COAL: id = 263; meta = 0; break;
+            case BlockType::CHARCOAL: id = 263; meta = 1; break;
+            case BlockType::DIAMOND: id = 264; break;
+            case BlockType::IRON_INGOT: id = 265; break;
+            case BlockType::GOLD_INGOT: id = 266; break;
+            case BlockType::IRON_SWORD: id = 267; break;
+            case BlockType::WOOD_SWORD: id = 268; break;
+            case BlockType::WOOD_SHOVEL: id = 269; break;
+            case BlockType::WOOD_PICKAXE: id = 270; break;
+            case BlockType::WOOD_AXE: id = 271; break;
+            case BlockType::STONE_SWORD: id = 272; break;
+            case BlockType::STONE_SHOVEL: id = 273; break;
+            case BlockType::STONE_PICKAXE: id = 274; break;
+            case BlockType::STONE_AXE: id = 275; break;
+            case BlockType::DIAMOND_SWORD: id = 276; break;
+            case BlockType::DIAMOND_SHOVEL: id = 277; break;
+            case BlockType::DIAMOND_PICKAXE: id = 278; break;
+            case BlockType::DIAMOND_AXE: id = 279; break;
+            case BlockType::STICK: id = 280; break;
+            case BlockType::BOWL: id = 281; break;
+            case BlockType::MUSHROOM_STEW: id = 282; break;
+            case BlockType::GOLD_SWORD: id = 283; break;
+            case BlockType::GOLD_SHOVEL: id = 284; break;
+            case BlockType::GOLD_PICKAXE: id = 285; break;
+            case BlockType::GOLD_AXE: id = 286; break;
+            case BlockType::STRING: id = 287; break;
+            case BlockType::FEATHER: id = 288; break;
+            case BlockType::GUNPOWDER: id = 289; break;
+            case BlockType::HOE_WOOD: id = 290; break;
+            case BlockType::HOE_STONE: id = 291; break;
+            case BlockType::HOE_IRON: id = 292; break;
+            case BlockType::HOE_DIAMOND: id = 293; break;
+            case BlockType::HOE_GOLD: id = 294; break;
+            case BlockType::SEEDS: id = 295; break;
+            case BlockType::WHEAT: id = 296; break;
+            case BlockType::BREAD: id = 297; break;
+            case BlockType::HELMET_LEATHER: id = 298; break;
+            case BlockType::CHESTPLATE_LEATHER: id = 299; break;
+            case BlockType::LEGGINGS_LEATHER: id = 300; break;
+            case BlockType::BOOTS_LEATHER: id = 301; break;
+            case BlockType::HELMET_IRON: id = 306; break;
+            case BlockType::CHESTPLATE_IRON: id = 307; break;
+            case BlockType::LEGGINGS_IRON: id = 308; break;
+            case BlockType::BOOTS_IRON: id = 309; break;
+            case BlockType::HELMET_DIAMOND: id = 310; break;
+            case BlockType::CHESTPLATE_DIAMOND: id = 311; break;
+            case BlockType::LEGGINGS_DIAMOND: id = 312; break;
+            case BlockType::BOOTS_DIAMOND: id = 313; break;
+            case BlockType::HELMET_GOLD: id = 314; break;
+            case BlockType::CHESTPLATE_GOLD: id = 315; break;
+            case BlockType::LEGGINGS_GOLD: id = 316; break;
+            case BlockType::BOOTS_GOLD: id = 317; break;
+            case BlockType::FLINT: id = 318; break;
+            case BlockType::PORK_RAW: id = 319; break;
+            case BlockType::PORK_COOKED: id = 320; break;
+            case BlockType::PAINTING: id = 321; break;
+            case BlockType::GOLDEN_APPLE: id = 322; break;
+            case BlockType::SIGN_ITEM: id = 323; break;
+            case BlockType::DOOR_WOOD_ITEM: id = 324; break;
+            case BlockType::BUCKET: id = 325; break;
+            case BlockType::WATER_BUCKET: id = 326; break;
+            case BlockType::LAVA_BUCKET: id = 327; break;
+            case BlockType::MINECART: id = 328; break;
+            case BlockType::SADDLE: id = 329; break;
+            case BlockType::DOOR_IRON_ITEM: id = 330; break;
+            case BlockType::REDSTONE: id = 331; break;
+            case BlockType::SNOWBALL: id = 332; break;
+            case BlockType::BOAT: id = 333; break;
+            case BlockType::LEATHER: id = 334; break;
+            case BlockType::MILK_BUCKET: id = 335; break;
+            case BlockType::BRICK: id = 336; break;
+            case BlockType::CLAY_BALL: id = 337; break;
+            case BlockType::SUGAR_CANE_ITEM: id = 338; break;
+            case BlockType::PAPER: id = 339; break;
+            case BlockType::BOOK: id = 340; break;
+            case BlockType::SLIMEBALL: id = 341; break;
+            case BlockType::MINECART_CHEST: id = 342; break;
+            case BlockType::MINECART_FURNACE: id = 343; break;
+            case BlockType::EGG: id = 344; break;
+            case BlockType::COMPASS: id = 345; break;
+            case BlockType::FISHING_ROD: id = 346; break;
+            case BlockType::CLOCK: id = 347; break;
+            case BlockType::GLOWSTONE_DUST: id = 348; break;
+            case BlockType::FISH_RAW: id = 349; break;
+            case BlockType::FISH_COOKED: id = 350; break;
+            case BlockType::INK_SAC: id = 351; meta = 0; break;
+            case BlockType::DYE_RED: id = 351; meta = 1; break;
+            case BlockType::DYE_GREEN: id = 351; meta = 2; break;
+            case BlockType::DYE_COCOA: id = 351; meta = 3; break;
+            case BlockType::DYE_LAPIS: id = 351; meta = 4; break;
+            case BlockType::DYE_PURPLE: id = 351; meta = 5; break;
+            case BlockType::DYE_CYAN: id = 351; meta = 6; break;
+            case BlockType::DYE_LIGHT_GRAY: id = 351; meta = 7; break;
+            case BlockType::DYE_GRAY: id = 351; meta = 8; break;
+            case BlockType::DYE_PINK: id = 351; meta = 9; break;
+            case BlockType::DYE_LIME: id = 351; meta = 10; break;
+            case BlockType::DYE_YELLOW: id = 351; meta = 11; break;
+            case BlockType::DYE_LIGHT_BLUE: id = 351; meta = 12; break;
+            case BlockType::DYE_MAGENTA: id = 351; meta = 13; break;
+            case BlockType::DYE_ORANGE: id = 351; meta = 14; break;
+            case BlockType::BONE_MEAL: id = 351; meta = 15; break;
+            case BlockType::BONE: id = 352; break;
+            case BlockType::SUGAR: id = 353; break;
+            case BlockType::CAKE_ITEM: id = 354; break;
+            case BlockType::BED_ITEM: id = 355; break;
+            case BlockType::REPEATER_ITEM: id = 356; break;
+            case BlockType::COOKIE: id = 357; break;
+            case BlockType::MAP: id = 358; break;
+            case BlockType::SHEARS: id = 359; break;
+            case BlockType::RECORD_13: id = 2256; break;
+            case BlockType::RECORD_CAT: id = 2257; break;
+            default: break;
+        }
+        if (id < 0) return 1000000 + (int)t;   // lo que no existe en el original (SPARE_ITEM...): al final
+        return id * 32 + meta;
+    }
+
+    // Ordena 'order[0..n)' (indices) de forma estable por la clave del resultado; keyOf(i) da la clave del elemento i
+    template <class KeyOf>
+    inline void sortStable(int* order, int n, KeyOf keyOf) {
+        for (int a = 1; a < n; a++) {
+            const int v = order[a];
+            const int kv = keyOf(v);
+            int b = a - 1;
+            while (b >= 0 && keyOf(order[b]) > kv) { order[b + 1] = order[b]; b--; }
+            order[b + 1] = v;
+        }
+    }
+}
+
+#endif
