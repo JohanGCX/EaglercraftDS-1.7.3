@@ -27,6 +27,7 @@
 #include "wolfangry.h"
 #include "wolftame.h"
 #include "PaintingTex.h"
+#include <stdlib.h>
 #include "SkyTex.h"
 
 int Texture::textureID = 0;
@@ -102,13 +103,14 @@ bool Texture::loadItemsAtlas() {
     return true;
 }
 
-// icons.png original de la Beta (256 x 256): la mira, los corazones, la armadura y las burbujas, en sus coordenadas de siempre
+// icons.png recortado a 128 x 32 (la esquina superior izquierda del original de la Beta, 4 KB en vez de 64 KB): la mira, los corazones, la armadura y las
+// burbujas, en sus coordenadas de siempre (las UV no cambian porque el origen es el mismo)
 bool Texture::loadIconsAtlas() {
     glGenTextures(1, &iconsTextureID);
     glBindTexture(0, iconsTextureID);
 
     int result = glTexImage2D(0, 0, GL_RGB256,
-                               TEXTURE_SIZE_256, TEXTURE_SIZE_256, 0,
+                               TEXTURE_SIZE_128, TEXTURE_SIZE_32, 0,
                                TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT, (u8*)iconsBitmap);
     if (result == 0) return false;
 
@@ -232,11 +234,22 @@ bool Texture::loadPaintingAtlas() {
     glGenTextures(1, &paintingTextureID);
     glBindTexture(0, paintingTextureID);
 #ifdef PAINTING_TEX_64
+    // paintingBitmap es de 128 x 128: se reduce aqui a 64 x 64 (un texel de cada cuatro) en un buffer temporal de 4 KB que se libera al subirla a la VRAM
     const GL_TEXTURE_SIZE_ENUM sz = TEXTURE_SIZE_64;
+    u8* small = (u8*)malloc(64 * 64);
+    if (!small) { glDeleteTextures(1, &paintingTextureID); paintingTextureID = 0; return false; }
+    for (int y = 0; y < 64; y++)
+        for (int x = 0; x < 64; x++) small[y * 64 + x] = ((const u8*)paintingBitmap)[(y * 2) * 128 + x * 2];
+    const u8* src = small;
 #else
     const GL_TEXTURE_SIZE_ENUM sz = TEXTURE_SIZE_128;
+    const u8* src = (const u8*)paintingBitmap;
 #endif
-    if (glTexImage2D(0, 0, GL_RGB256, sz, sz, 0, TEXGEN_TEXCOORD, (u8*)paintingBitmap) == 0) {
+    const int r = glTexImage2D(0, 0, GL_RGB256, sz, sz, 0, TEXGEN_TEXCOORD, (u8*)src);
+#ifdef PAINTING_TEX_64
+    free(small);
+#endif
+    if (r == 0) {
         glDeleteTextures(1, &paintingTextureID);
         paintingTextureID = 0;   // no cabe: los cuadros se dibujan en blanco plano, como antes
         return false;
