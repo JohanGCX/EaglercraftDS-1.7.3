@@ -18,6 +18,7 @@
 #include "DebugChests.h"
 #include "SheepModel.h"
 #include "SheepManager.h"
+#include "MobCull.h"
 #include "AnimalManager.h"
 #include "Maps.h"
 #include "Weather.h"
@@ -2409,6 +2410,7 @@ Weather::load();
             FallingBlocks::draw(player->x, player->y, player->z, partialTick);
             Pistons::draw(player->x, player->y, player->z, partialTick);   // bloques que se estan moviendo
 
+            MobCull::set(player->x, player->y, player->z, lookDirX, lookDirY, lookDirZ, WorldConfig::renderDistance() + 2.0f);   // mobs off screen are not drawn
             SheepManager::setCamera(player->yaw, player->pitch);
             SheepManager::draw(*chunkManager, partialTick);
             MinecartManager::draw(*chunkManager, partialTick);

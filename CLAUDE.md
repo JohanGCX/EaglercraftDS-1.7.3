@@ -535,6 +535,7 @@ restores or discards a leftover `.tempworld`. Deleting a world removes subfolder
 | 20 | renderQuality | 0 high, 1 balanced, 2 fast |
 | 21 | spikeLog | |
 | 22 | debugCoordsOnly | |
+| 23 | oldMobSpawnLimit | 1 = original (pre-RC1) mob limits; 0 (default) = half. See `MobCull.h` for draw culling and far-AI throttling |
 
 **To add an option:** add the field to `Options::Data` (+ comment), set the default in `Options::load()`, read it with an `n >= <size>` guard, write it in `Options::save()` and bump the buffer size in both places,
 then add a row in `SettingsMenu.cpp` (main list or a submenu) and handle it in `SettingsMenu::update`. Always append the byte at the end.

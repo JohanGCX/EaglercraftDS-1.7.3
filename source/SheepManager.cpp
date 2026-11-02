@@ -10,6 +10,8 @@
 #include "ChunkManager.h"
 #include "Chunk.h"
 #include "HandAnimations.h"
+#include "Options.h"
+#include "MobCull.h"
 #include <math.h>
 
 namespace {
@@ -123,6 +125,7 @@ int SheepManager::count() {
 }
 
 void SheepManager::tick(const ChunkManager& cm, float px, float py, float pz, bool playerAlive) {
+    MobCull::nextTick();   // one 20 Hz tick for the far-AI throttling of every manager
     HostileManager::tick(cm, px, py, pz, playerAlive);   // los hostiles corren en las dos dimensiones
     if (!s_enabled) { collideAll(); return; }
     AnimalManager::tick(cm, px, py, pz);
@@ -136,6 +139,7 @@ void SheepManager::tick(const ChunkManager& cm, float px, float py, float pz, bo
         if (!s.active) continue;
         if (!(fabs(s.x) < 1.0e6 && fabs(s.z) < 1.0e6 && s.y > -20.0 && s.y < 200.0)) { s.active = false; continue; }   // coordenadas rotas (NaN o fuera del mundo): ocupaban un cupo para siempre
         if (SheepAI::shouldDespawn(s, w, pcx, pcz)) { s.active = false; continue; }   // fuera de los 9 chunks: se borra al instante
+        if (s.hs.health > 0 && s.hs.hurtTime == 0 && MobCull::skipFar(s.x, s.z, (double)px, (double)pz, i)) { MobCull::freeze(s); ++alive; continue; }   // far: AI every other tick
         SheepAI::tick(s, w, s_rng, pl);
         if (s.active) Partial::mobWalked(cm, s);   // pisotea la tierra de cultivo
         collectDeath(s);
@@ -146,14 +150,17 @@ void SheepManager::tick(const ChunkManager& cm, float px, float py, float pz, bo
     static int s_noneTicks = 0;
     if (alive > 0) s_noneTicks = 0;
     else if (++s_noneTicks >= 1200) { s_noneTicks = 0; s_rng = SheepAI::Rng(s_rng.s * 2654435761u + 0x9E3779B9u); s_spawnTimer = 1; }
-    if (alive < MAX_SHEEP && --s_spawnTimer <= 0) {
+    const int sheepCap = Options::get().oldMobSpawnLimit ? MAX_SHEEP : (MAX_SHEEP + 1) / 2;   // half by default (debug option oldmobspawnlimit restores it)
+    if (alive < sheepCap && --s_spawnTimer <= 0) {
         s_spawnTimer = 300 + s_rng.nextInt(200);   // un intento cada 15 a 25 segundos
         double x, y, z;
         if (SheepAI::findSpawn(w, s_rng, pcx, pcz, (double)px, (double)pz, x, y, z)) {
             const double fx = x, fy = y, fz = z;
             for (int member = 0; member < 4; member++) {   // una manada de hasta 4 (getMaxSpawnedInChunk); caben las que dejen los 2 cupos
                 if (member > 0 && !AnimalAI::packSpot(w, s_rng, (int)floor(fx), AnimalAI::cellY(fy), (int)floor(fz), (double)px, (double)pz, x, y, z)) break;
-                int slot = -1;
+                int slot = -1, nowAlive = 0;
+                for (int i = 0; i < MAX_SHEEP; i++) if (s_sheep[i].active) ++nowAlive;
+                if (nowAlive >= sheepCap) break;
                 for (int i = 0; i < MAX_SHEEP; i++) if (!s_sheep[i].active) { slot = i; break; }
                 if (slot < 0) break;
                 Sheep& s = s_sheep[slot];
@@ -194,6 +201,7 @@ void SheepManager::draw(const ChunkManager& cm, float partialTick) {
     for (int i = 0; i < MAX_SHEEP; i++) {
         const Sheep& s = s_sheep[i];
         if (!s.active) continue;
+        if (!MobCull::visible((float)s.x, (float)s.y + 0.65f, (float)s.z, 1.8f)) continue;   // off screen
         SheepModel::draw(s, partialTick, HandAnimations::lightLevelAt(cm, (float)s.x, (float)s.y + 0.9f, (float)s.z));
     }
 }

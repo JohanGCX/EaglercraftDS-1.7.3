@@ -11,6 +11,8 @@
 #include <math.h>
 #include <string.h>
 #include "TntManager.h"
+#include "Options.h"
+#include "MobCull.h"
 #include "NoteBlocks.h"
 #include <stdio.h>
 
@@ -24,6 +26,12 @@ namespace {
     int s_spawnTimer = 0;
     int s_held = 0;                  // lo que lleva el jugador: 0 nada, 1 hueso, 2 carne de cerdo
     const int KIND_CAP[H_KIND_COUNT] = { 4, 4, 4, 4, 6, 4, 3, 4, 3 };   // por tipo (zombie, esqueleto, araña, creeper, zombi cerdo, slime, ghast, lobo, calamar)
+
+    // Spawn limits: by default half of the original ones (performance on DS/DSi); Options -> debug options -> oldmobspawnlimit brings back the old ones
+    bool oldLimits() { return Options::get().oldMobSpawnLimit; }
+    int halfCap(int c) { return oldLimits() ? c : (c + 1) / 2; }
+    int monsterCap() { return halfCap(HostileManager::MONSTER_CAP); }
+    int kindCap(int kind) { return halfCap(KIND_CAP[kind]); }
 
     const int DROP_QUEUE = 24;
     HostileManager::Drop s_drops[DROP_QUEUE];
@@ -391,7 +399,7 @@ namespace {
     bool spawnPack(const ChunkManager& cm, HWorld& w, int kind, double px, double py, double pz, int pcx, int pcz) {
         const bool waterMob = kind == H_SQUID;
         const int category = kind == H_SQUID ? 2 : (kind == H_WOLF ? 1 : 0);
-        const int categoryCap = category == 0 ? HostileManager::MONSTER_CAP : (category == 1 ? HostileManager::WOLF_CAP : HostileManager::SQUID_CAP);
+        const int categoryCap = category == 0 ? monsterCap() : halfCap(category == 1 ? HostileManager::WOLF_CAP : HostileManager::SQUID_CAP);
         const int packMax = kind == H_GHAST ? 1 : (kind == H_WOLF ? 8 : 4);
         const int feetJ = AnimalAI::cellY(py - 1.62);
         const long long seed = (long long)cm.getSeed();
@@ -420,7 +428,7 @@ namespace {
                     const double x = (double)i + 0.5, y = (double)j0 - 0.5, z = (double)k + 0.5;
                     const double dx = x - px, dy = y - (py - 1.62), dz = z - pz;
                     if (dx * dx + dy * dy + dz * dz < 144.0) continue;                 // Beta: ningun jugador a menos de 24 (aqui 12: el mundo cargado es mucho mas chico)
-                    if (countAlive() >= HostileManager::MAX_MOBS || categoryCount(category) >= categoryCap || kindCount(kind) >= KIND_CAP[kind]) return made > 0;
+                    if (countAlive() >= HostileManager::MAX_MOBS || categoryCount(category) >= categoryCap || kindCount(kind) >= kindCap(kind)) return made > 0;
                     // EntityLiving.getCanSpawnHere: no encima de otro mob
                     bool taken = false;
                     for (int n = 0; n < HostileManager::MAX_MOBS && !taken; n++) {
@@ -512,7 +520,7 @@ int HostileManager::spawnerSpawn(const ChunkManager& cm, int mobKind, int ci, in
         if (o.active && o.hkind == kind && fabs(o.x - (ci + 0.5)) <= 8.5 && fabs(o.z - (ck + 0.5)) <= 8.5 && fabs((o.y + 0.5) - (double)cj) <= 4.5) ++near;
     }
     if (near >= 6) return -1;
-    if (countAlive() >= MAX_MOBS) return 0;
+    if (countAlive() >= MAX_MOBS || categoryCount(0) >= monsterCap()) return 0;   // the spawner also respects the monster limit
     HWorld w(cm);
     const double fx = (double)ci + (double)(s_rng.nextFloat() - s_rng.nextFloat()) * 4.0;
     const double fz = (double)ck + (double)(s_rng.nextFloat() - s_rng.nextFloat()) * 4.0;
@@ -548,6 +556,13 @@ void HostileManager::tick(const ChunkManager& cm, float px, float py, float pz, 
                 m.motionX = m.motionY = m.motionZ = 0.0; m.pathLen = 0; m.fallDistance = 0.0f;
             }
         } else if (AnimalAI::shouldDespawn(m, w, pcx, pcz)) { m.active = false; continue; }
+        // Far away and calm: the AI runs every other tick (the ghast shoots from far, the tamed wolf follows its owner, a chasing or dying mob keeps full speed)
+        if (m.hkind != H_GHAST && !m.tamed && !m.hasTarget && m.hs.health > 0 && m.hs.hurtTime == 0 && MobCull::skipFar(m.x, m.z, (double)px, (double)pz, i)) {
+            MobCull::freeze(m);
+            m.prevSquish = m.squish; m.prevAttackCounter = m.attackCounter; m.prevInterest = m.interest;
+            m.sqPrevPitch = m.sqPitch; m.sqPrevRoll = m.sqRoll; m.sqPrevTent = m.sqTent;
+            continue;
+        }
         HostileAI::tick(m, w, s_rng, pl, sink);
         if (m.active && m.hkind != H_GHAST) Partial::mobWalked(cm, m);   // pisotea la tierra de cultivo (el ghast vuela)
         collectDeath(m);
@@ -577,15 +592,15 @@ void HostileManager::tick(const ChunkManager& cm, float px, float py, float pz, 
     // taiga, peso 2 contra 40 de los animales) y calamares (agua). El Nether solo tiene ghast y zombi cerdo (peso 10 y 10) y ni lobos ni calamares.
     if (playerAlive && --s_spawnTimer <= 0) {
         s_spawnTimer = 10 + s_rng.nextInt(10);
-        if (!s_peacefulMode && categoryCount(0) < MONSTER_CAP) {
+        if (!s_peacefulMode && categoryCount(0) < monsterCap()) {
             int kind;
             if (s_nether) kind = s_rng.nextInt(2) == 0 ? H_GHAST : H_PIGZOMBIE;
             else { static const int LIST[5] = { H_SPIDER, H_ZOMBIE, H_SKELETON, H_CREEPER, H_SLIME }; kind = LIST[s_rng.nextInt(5)]; }
             spawnPack(cm, w, kind, (double)px, (double)py, (double)pz, pcx, pcz);
         }
         if (!s_nether) {
-            if (categoryCount(1) < 2 && s_rng.nextInt(4) == 0) spawnPack(cm, w, H_WOLF, (double)px, (double)py, (double)pz, pcx, pcz);
-            if (categoryCount(2) < SQUID_CAP && s_rng.nextInt(2) == 0) spawnPack(cm, w, H_SQUID, (double)px, (double)py, (double)pz, pcx, pcz);
+            if (categoryCount(1) < halfCap(2) && s_rng.nextInt(4) == 0) spawnPack(cm, w, H_WOLF, (double)px, (double)py, (double)pz, pcx, pcz);
+            if (categoryCount(2) < halfCap(SQUID_CAP) && s_rng.nextInt(2) == 0) spawnPack(cm, w, H_SQUID, (double)px, (double)py, (double)pz, pcx, pcz);
         }
     }
 }
@@ -666,11 +681,13 @@ void HostileManager::draw(const ChunkManager& cm, float partialTick) {
     for (int i = 0; i < MAX_MOBS; i++) {
         const Mob& m = s_mobs[i];
         if (!m.active) continue;
+        const float r = (float)(m.width > m.height ? m.width : m.height) * (m.hkind == H_SLIME ? (float)m.slimeSize : 1.0f) + 0.5f;
+        if (!MobCull::visible((float)m.x, (float)(m.y + m.height * 0.5), (float)m.z, r)) continue;   // off screen or too far: not drawn
         HostileModel::draw(m, partialTick, HandAnimations::lightLevelAt(cm, (float)m.x, (float)m.y + (float)(m.height * 0.5), (float)m.z));
     }
     for (int i = 0; i < MAX_ARROWS; i++) {
         const Arrow& a = s_arrows[i];
-        if (!a.active) continue;
+        if (!a.active || !MobCull::visible((float)a.x, (float)a.y, (float)a.z, 0.6f)) continue;
         HostileModel::drawArrow(a, partialTick, HandAnimations::lightLevelAt(cm, (float)a.x, (float)a.y, (float)a.z));
     }
     for (int i = 0; i < MAX_FIREBALLS; i++) {

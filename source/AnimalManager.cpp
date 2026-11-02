@@ -7,6 +7,8 @@
 #include "Chunk.h"
 #include "HandAnimations.h"
 #include "ExplosionDamage.h"
+#include "Options.h"
+#include "MobCull.h"
 #include <math.h>
 
 namespace {
@@ -69,6 +71,9 @@ namespace {
         pushDrop(drop, s_rng.nextInt(3), a.x, a.y, a.z);
     }
 
+    // Spawn limits: half of the original by default (Options -> debug options -> oldmobspawnlimit restores them)
+    int halfCap(int c) { return Options::get().oldMobSpawnLimit ? c : (c + 1) / 2; }
+
     int countKind(int kind) {
         int n = 0;
         for (int i = 0; i < AnimalManager::MAX_ANIMALS; i++) if (s_animals[i].active && s_animals[i].kind == kind) ++n;
@@ -124,6 +129,13 @@ void AnimalManager::tick(const ChunkManager& cm, float px, float py, float pz) {
         if (!a.active) continue;
         if (!(fabs(a.x) < 1.0e6 && fabs(a.z) < 1.0e6 && a.y > -20.0 && a.y < 200.0)) { a.active = false; continue; }   // coordenadas rotas (NaN o fuera del mundo): ocupaban un cupo para siempre
         if (AnimalAI::shouldDespawn(a, w, pcx, pcz)) { a.active = false; continue; }   // fuera de los 9 chunks: se borra al instante
+        // far away and calm: the AI runs every other tick (MobCull.h); the ridden pig and a hurt or dying animal keep full speed
+        if (i != s_riding && a.hs.health > 0 && a.hs.hurtTime == 0 && MobCull::skipFar(a.x, a.z, (double)px, (double)pz, i)) {
+            MobCull::freeze(a);
+            a.wingPrevPhase = a.wingPhase; a.wingPrevDest = a.wingDest;
+            ++alive;
+            continue;
+        }
         AnimalAI::tick(a, w, s_rng, pl);
         if (a.active) Partial::mobWalked(cm, a);   // pisotea la tierra de cultivo
         collectDeath(a);
@@ -144,13 +156,13 @@ void AnimalManager::tick(const ChunkManager& cm, float px, float py, float pz) {
     static int s_noneTicks = 0;
     if (alive > 0) s_noneTicks = 0;
     else if (++s_noneTicks >= 1200) { s_noneTicks = 0; s_rng = AnimalAI::Rng(s_rng.s * 2654435761u + 0x9E3779B9u); s_spawnTimer = 1; }
-    if (alive < ANIMAL_SPAWN_CAP && --s_spawnTimer <= 0) {
+    if (alive < halfCap(ANIMAL_SPAWN_CAP) && --s_spawnTimer <= 0) {
         s_spawnTimer = 300 + s_rng.nextInt(200);   // un intento cada 15 a 25 segundos (en la Beta la poblacion crece despacio)
         // BiomeGenBase.spawnableCreatureList: se elige entre los tipos que todavia no llegaron a su tope, segun su peso (cerdo 10, gallina 10, vaca 8; la oveja
         // -peso 12- la maneja SheepManager)
         static const int WEIGHT[KIND_COUNT] = { 8, 10, 10 };
         int open[KIND_COUNT], n = 0, total = 0;
-        for (int k = 0; k < KIND_COUNT; k++) if (countKind(k) < MAX_PER_KIND) { open[n++] = k; total += WEIGHT[k]; }
+        for (int k = 0; k < KIND_COUNT; k++) if (countKind(k) < halfCap(MAX_PER_KIND)) { open[n++] = k; total += WEIGHT[k]; }
         double x, y, z;
         if (n > 0 && AnimalAI::findSpawn(w, s_rng, pcx, pcz, (double)px, (double)pz, x, y, z)) {
             int roll = s_rng.nextInt(total), kind = open[0];
@@ -159,7 +171,7 @@ void AnimalManager::tick(const ChunkManager& cm, float px, float py, float pz) {
             // una manada de hasta 4 del mismo tipo (EntityLiving.getMaxSpawnedInChunk): el primero y 3 mas cerca, si caben
             for (int member = 0; member < 4; member++) {
                 if (member > 0) {
-                    if (countKind(kind) >= MAX_PER_KIND || !AnimalAI::packSpot(w, s_rng, (int)floor(fx), AnimalAI::cellY(fy), (int)floor(fz), (double)px, (double)pz, x, y, z)) break;
+                    if (countKind(kind) >= halfCap(MAX_PER_KIND) || !AnimalAI::packSpot(w, s_rng, (int)floor(fx), AnimalAI::cellY(fy), (int)floor(fz), (double)px, (double)pz, x, y, z)) break;
                 }
                 int slot = -1;
                 for (int i = 0; i < MAX_ANIMALS; i++) if (!s_animals[i].active) { slot = i; break; }
@@ -202,6 +214,7 @@ void AnimalManager::draw(const ChunkManager& cm, float partialTick) {
     for (int i = 0; i < MAX_ANIMALS; i++) {
         const Animal& a = s_animals[i];
         if (!a.active) continue;
+        if (!MobCull::visible((float)a.x, (float)(a.y + a.height * 0.5), (float)a.z, (float)(a.width > a.height ? a.width : a.height) + 0.5f)) continue;   // off screen
         AnimalModel::draw(a, partialTick, HandAnimations::lightLevelAt(cm, (float)a.x, (float)a.y + (float)(a.height * 0.5), (float)a.z));
     }
 }
