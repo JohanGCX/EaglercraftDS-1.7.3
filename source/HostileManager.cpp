@@ -74,6 +74,12 @@ namespace {
             Chunk* c = cm.getChunkByChunkCoord(cx, cz);
             return c && c->isGenerationComplete();
         }
+        // Para aparecer mobs: ademas de estar generado, el chunk debe tener ya su luz calculada. Mientras la luz inicial del cielo (o el recalculo) esta
+        // pendiente el chunk se ve oscuro, y los hostiles aparecian de dia en esa ventana.
+        bool lightReady(int cx, int cz) const {
+            Chunk* c = cm.getChunkByChunkCoord(cx, cz);
+            return c && c->isGenerationComplete() && !c->isInitialSkyLightPending() && !c->isCacheRecalcPending() && !c->isEmitterReseedPending();
+        }
         int rawSky(int i, int j, int k) const {
             if (j > 126) return 15;
             if (j < -1) return 0;
@@ -337,7 +343,7 @@ namespace {
                 if ((di < 0 ? -di : di) != r && (dk < 0 ? -dk : dk) != r) continue;   // solo el borde del cuadro
                 for (int dj = 0; dj >= -1; dj--) {
                     const int i = pi + di, k = pk + dk, j = pj + dj;
-                    if (!w.chunkReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) continue;
+                    if (!w.lightReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) continue;
                     if (HostileAI::airSpawnSpot(w, i, j, k)) { ox = (double)i + 0.5; oy = (double)j - 0.5; oz = (double)k + 0.5; return true; }
                 }
             }
@@ -409,7 +415,7 @@ namespace {
                 for (int step = 0; step < 4; step++) {
                     i += s_rng.nextInt(6) - s_rng.nextInt(6);
                     k += s_rng.nextInt(6) - s_rng.nextInt(6);
-                    if (!w.chunkReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) continue;
+                    if (!w.lightReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) continue;
                     if (waterMob ? !HostileAI::waterSpawnSpot(w, i, j0, k) : !HostileAI::airSpawnSpot(w, i, j0, k)) continue;
                     const double x = (double)i + 0.5, y = (double)j0 - 0.5, z = (double)k + 0.5;
                     const double dx = x - px, dy = y - (py - 1.62), dz = z - pz;
@@ -461,7 +467,7 @@ bool HostileManager::sleepSpawn(const ChunkManager& cm, float px, float pz, int 
         int j0 = bedJ + s_rng.nextInt(16) - s_rng.nextInt(16);
         if (j0 < 1) j0 = 1; else if (j0 > 126) j0 = 126;
         const int kind = LIST[s_rng.nextInt(3)];
-        if (!w.chunkReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) continue;
+        if (!w.lightReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) continue;
         int j = j0;
         while (j > 2 && !isNormalCube(w.type(i, j - 1, k))) --j;
         while (!HostileAI::airSpawnSpot(w, i, j, k) && j < j0 + 16 && j < 126) ++j;
@@ -511,7 +517,7 @@ int HostileManager::spawnerSpawn(const ChunkManager& cm, int mobKind, int ci, in
     const double fx = (double)ci + (double)(s_rng.nextFloat() - s_rng.nextFloat()) * 4.0;
     const double fz = (double)ck + (double)(s_rng.nextFloat() - s_rng.nextFloat()) * 4.0;
     const int i = (int)floor(fx), k = (int)floor(fz), j = cj + s_rng.nextInt(3) - 1;
-    if (!w.chunkReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) return 0;
+    if (!w.lightReady(AnimalAI::chunkOf((double)i), AnimalAI::chunkOf((double)k))) return 0;
     if (!HostileAI::airSpawnSpot(w, i, j, k)) return 0;
     const double x = fx, y = (double)j - 0.5, z = fz;
     if (!HostileAI::canSpawnHere(kind, w, s_rng, false, (long long)cm.getSeed(), i, j, k, x, y, z)) return 0;
