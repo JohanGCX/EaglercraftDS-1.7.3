@@ -3,6 +3,7 @@
 #include "Chunk.h"
 #include "ChunkManager.h"
 #include "WorldConfig.h"
+#include "Sound.h"
 #include <nds.h>
 #include <math.h>
 #include <stdio.h>
@@ -11,14 +12,6 @@
 namespace {
     struct Entry { bool used; int gx, gy, gz; int note; bool prev; };
     Entry s_notes[NoteBlocks::MAX_NOTES];
-
-    float s_lx = 0.0f, s_ly = 0.0f, s_lz = 0.0f;
-    bool s_haveListener = false;
-    bool s_soundOn = false;
-
-    struct Voice { int id; int ticks; };
-    const int VOICES = 8;
-    Voice s_voice[VOICES];
 
     Entry* find(int gx, int gy, int gz) {
         for (int i = 0; i < NoteBlocks::MAX_NOTES; i++)
@@ -60,33 +53,6 @@ namespace {
             t == BlockType::DOOR_WOOD || t == BlockType::SIGN_POST || t == BlockType::SIGN_WALL) return 4;
         return 0;
     }
-
-    void playVoice(int id, int ticks) {
-        if (id < 0) return;
-        for (int i = 0; i < VOICES; i++) {
-            if (s_voice[i].id >= 0 && s_voice[i].ticks > 0) continue;
-            s_voice[i].id = id; s_voice[i].ticks = ticks;
-            return;
-        }
-        soundKill(id);   // sin sitio en la lista: no dejar el canal sonando
-    }
-
-    // BlockNote.playBlock: pitch = 2^((nota - 12) / 12)
-    void playNote(int instrument, int note, int volume) {
-        if (volume <= 0) return;
-        if (!s_soundOn) { soundEnable(); s_soundOn = true; }
-        const float pitch = powf(2.0f, (float)(note - 12) / 12.0f);
-        const u8 vol = (u8)(volume > 127 ? 127 : volume);
-        int id = -1, ticks = 4;
-        switch (instrument) {
-            case 1: id = soundPlayPSG(DutyCycle_50, (u16)(60.0f * pitch), vol, 64); ticks = 3; break;               // bombo
-            case 2: id = soundPlayNoise((u16)(5000.0f * pitch > 30000.0f ? 30000.0f : 5000.0f * pitch), vol, 64); ticks = 3; break;   // caja
-            case 3: id = soundPlayNoise((u16)(20000.0f * pitch > 60000.0f ? 60000.0f : 20000.0f * pitch), (u8)(vol * 2 / 3), 64); ticks = 2; break;   // platillo
-            case 4: id = soundPlayPSG(DutyCycle_25, (u16)(92.0f * pitch), vol, 64); ticks = 6; break;                // bajo
-            default: id = soundPlayPSG(DutyCycle_50, (u16)(370.0f * pitch), vol, 64); ticks = 5; break;              // arpa
-        }
-        playVoice(id, ticks);
-    }
 }
 
 int NoteBlocks::noteAt(int gx, int gy, int gz) { const Entry* e = find(gx, gy, gz); return e ? e->note : 0; }
@@ -101,13 +67,7 @@ void NoteBlocks::trigger(const ChunkManager& cm, int gx, int gy, int gz) {
     const int instrument = instrumentFor(typeAtGrid(cm, gx, gy - 1, gz));
     const Entry* e = find(gx, gy, gz);
     const int note = e ? e->note : 0;
-    int volume = 100;
-    if (s_haveListener) {   // Beta: volumen 3 (se oye hasta unos 48 bloques); aqui se apaga a los 32
-        const float dx = (float)(gx - 4) + 0.5f - s_lx, dy = (float)(gy - 1) - s_ly, dz = (float)(gz - 4) + 0.5f - s_lz;
-        const float d = sqrtf(dx * dx + dy * dy + dz * dz);
-        volume = (int)(100.0f * (1.0f - d / 32.0f));
-    }
-    playNote(instrument, note, volume);
+    Sound::note(instrument, note, (float)(gx - 4) + 0.5f, (float)(gy - 1), (float)(gz - 4) + 0.5f);   // Sound atenua por distancia (32 bloques) y panea
 }
 
 bool NoteBlocks::powerChanged(int gx, int gy, int gz, bool powered) {
@@ -125,14 +85,9 @@ void NoteBlocks::remove(int gx, int gy, int gz) {
 
 void NoteBlocks::clearAll() { memset(s_notes, 0, sizeof(s_notes)); }
 
-void NoteBlocks::setListener(float x, float y, float z) { s_lx = x; s_ly = y; s_lz = z; s_haveListener = true; }
+void NoteBlocks::setListener(float, float, float) {}   // sin uso: Sound ya conoce al jugador (se conserva por compatibilidad)
 
-void NoteBlocks::tickSound() {
-    for (int i = 0; i < VOICES; i++) {
-        if (s_voice[i].id < 0 || s_voice[i].ticks <= 0) continue;
-        if (--s_voice[i].ticks == 0) { soundKill(s_voice[i].id); s_voice[i].id = -1; }
-    }
-}
+void NoteBlocks::tickSound() {}   // las notas son muestras cortas: no hay que cortarlas
 
 // notes.dat: 'MNOT', version 1, cantidad, y por bloque: gx, gy, gz (int32) y la nota (1 byte)
 bool NoteBlocks::saveToFile(const char* path) {

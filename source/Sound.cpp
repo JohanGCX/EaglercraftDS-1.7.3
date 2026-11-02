@@ -2,6 +2,7 @@
 #include "Options.h"
 #include "SoundData.h"
 #include "SoundAmbient.h"
+#include "SoundNote.h"
 #include <nds.h>
 #include <math.h>
 #include <stdlib.h>
@@ -10,7 +11,7 @@ namespace {
     bool  s_init = false;
     float s_lx = 0, s_ly = 0, s_lz = 0, s_cosY = 1, s_sinY = 0;
     unsigned s_frame = 0;
-    unsigned s_last[S_COUNT + 4];       // ultimo cuadro en que sono cada clip (anti-saturacion)
+    unsigned s_last[S_COUNT + 4 + 5];       // ultimo cuadro en que sono cada clip (anti-saturacion)
     unsigned s_lastAny = 0;
     int s_alt = 0;                  // alterna entre las 2 variantes
 
@@ -178,6 +179,22 @@ static void cellToWorld(int gx, int gy, int gz, float& x, float& y, float& z) {
 void Sound::doorCell(bool open, int gx, int gy, int gz) {
     float x, y, z; cellToWorld(gx, gy, gz, x, y, z);
     at(open ? S_DOOR_OPEN : S_DOOR_CLOSE, x, y, z, 1.0f, 0.9f + rnd() * 0.1f);
+}
+
+// Bloque de notas: instrumento 0 arpa, 1 bombo, 2 caja, 3 platillo, 4 bajo; nota 0 a 24. Tono como BlockNote.playBlock: 2^((nota - 12) / 12) (de 0,5 a 2).
+// Se oye hasta 32 bloques (Beta: volumen 3). Sin el filtro por cuadro de playClip: varios bloques del mismo instrumento pueden sonar a la vez.
+void Sound::note(int instrument, int note, float x, float y, float z) {
+    if (instrument < 0 || instrument > 4) instrument = 0;
+    if (note < 0) note = 0;
+    if (note > 24) note = 24;
+    const float dx = x - s_lx, dy = y - s_ly, dz = z - s_lz;
+    const float d = sqrtf(dx * dx + dy * dy + dz * dz);
+    if (d >= 32.0f) return;
+    float pan = 0.0f;
+    if (d > 0.5f) pan = (dx * s_cosY + dz * -s_sinY) / d * 0.8f;
+    const int slot = S_COUNT + 4 + instrument;
+    s_last[slot] = s_frame - 3;
+    playClip(NOTE_CLIPS[instrument], slot, 1.0f - d / 32.0f, powf(2.0f, (float)(note - 12) / 12.0f), pan);
 }
 
 void Sound::uiClick() {

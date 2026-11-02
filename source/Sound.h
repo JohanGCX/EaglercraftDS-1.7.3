@@ -20,6 +20,7 @@ namespace Sound {
     void mobSay(int kind, float x, float y, float z);
     void doorCell(bool open, int gx, int gy, int gz);      // puerta / trampilla (celda de la cuadricula)
     void uiClick();                                         // click de los botones y menus (no posicional, suena aunque no haya partida)
+    void note(int instrument, int note, float x, float y, float z);   // bloque de notas (instrumento 0 a 4, nota 0 a 24), posicion en coordenadas de mundo
     void clickCell(int gx, int gy, int gz);                // palanca, boton, repetidor
     void splash(float x, float y, float z, float vol);
     void rain(float x, float y, float z, bool covered);    // una gota que suena (covered: el jugador esta bajo techo)

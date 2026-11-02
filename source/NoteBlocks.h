@@ -4,8 +4,7 @@
 class ChunkManager;
 
 // Bloque de notas (BlockNote + TileEntityNote, Beta 1.7.3). La nota (0 a 24) de cada bloque se guarda aqui por celda global (gx, gy, gz), por dimension (notes.dat).
-// El sonido sale por los canales PSG y de ruido de la DS (no hay muestras de audio): arpa = onda cuadrada, bajo = onda mas grave, bombo = grave corto,
-// caja = ruido, platillo = ruido agudo. Beta: el instrumento depende del material del bloque de abajo y solo suena con aire encima.
+// El sonido son las muestras de la Beta (SoundNote.h: arpa, bombo, caja, platillo y bajo) reproducidas con Sound::note, que cambia la velocidad para dar el tono. Beta: el instrumento depende del material del bloque de abajo y solo suena con aire encima.
 namespace NoteBlocks {
     const int MAX_NOTES = 128;
 
