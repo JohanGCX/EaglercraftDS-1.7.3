@@ -218,7 +218,9 @@ namespace {
             glScalef(sc, sc, sc);
             glBindTexture(0, Texture::textureID);
             glColor3b(255, 255, 255);
-            glRotatef(-s_camYaw, 0.0f, 1.0f, 0.0f);
+            // La camara gira con -yaw (main.cpp), asi que +yaw deja el plano de frente con +z hacia el jugador. La Beta usa -playerViewY con su camara
+            // girada 180 (orientCamera: yaw + 180): su +z apunta lejos del jugador y el -0,3 de abajo pone las llamas DELANTE del mob. Aqui eso es yaw + 180.
+            glRotatef(s_camYaw + 180.0f, 0.0f, 1.0f, 0.0f);
             float h = height / sc;
             glTranslatef(0.0f, 0.0f, -0.3f + (float)((int)h) * 0.02f);
             float halfW = 0.5f, dy = 0.0f, dz = 0.0f;

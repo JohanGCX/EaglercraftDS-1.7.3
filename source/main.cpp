@@ -290,7 +290,9 @@ static void drawPortalOverlay(float timeInPortal) {
 // Las texturas animadas del original no existen aqui: cada llama alterna entre las dos celdas y se espeja cada pocos ticks para que parpadee.
 static void drawFireOverlay(u32 frames) {
     const int t = (int)(frames / 3);   // ticks de mundo
-    glPolyFmt(POLY_ALPHA(28) | POLY_CULL_NONE | POLY_ID(15));
+    // (1 << 11): los poligonos translucidos tambien escriben profundidad. Con glFlush(0) el hardware ordena los translucidos por su cuenta, y el agua
+    // (translucida) a veces se dibujaba despues y tapaba las llamas. Ahora el agua que cae detras de las llamas no pasa la prueba de profundidad.
+    glPolyFmt(POLY_ALPHA(28) | POLY_CULL_NONE | POLY_ID(15) | (1 << 11));
     glBindTexture(0, Texture::textureID);
     glColor3b(255, 255, 255);
     for (int k = 0; k < 2; k++) {

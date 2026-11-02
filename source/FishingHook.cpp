@@ -219,9 +219,9 @@ void FishingHook::draw(const ChunkManager& cm, float partialTick, float camYaw, 
     const float t = partialTick;
     const double x = h.prevX + (h.x - h.prevX) * t, y = h.prevY + (h.y - h.prevY) * t, z = h.prevZ + (h.z - h.prevZ) * t;
 
-    // el flotador (RenderFish): un cuadrito de 0,5 que mira a la camara; sin textura, rojo arriba y blanco abajo (la VRAM de texturas esta llena)
-    const unsigned char level = (unsigned char)15;
-    (void)cm; (void)level;
+    // el flotador (RenderFish): la celda 1 de particles.png (8 x 8, el sprite de 4 x 7 centrado) en un cuadro de 0,5 que mira a la camara.
+    // Sin textura (la VRAM esta llena): cada pixel del original es un cuadrito de color plano; los pixeles seguidos del mismo color van en un solo cuadro.
+    (void)cm;
     glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -230,20 +230,30 @@ void FishingHook::draw(const ChunkManager& cm, float partialTick, float camYaw, 
         glRotatef(camYaw, 0.0f, 1.0f, 0.0f);
         glRotatef(camPitch, 1.0f, 0.0f, 0.0f);
         glBindTexture(0, 0);
-        {   // el sprite original (4 x 6 pixeles): arriba blanco, en medio rojo y abajo un tramo blanco mas angosto, horneado en rectangulos de color plano
-            struct R { float x0, y0, x1, y1; int r, g, b; };
-            const float u = 0.125f, ox = -0.25f, oy = -0.375f;   // cada pixel mide u (la celda de 8 px mide 1 antes del escalado)
-            static const R rects[3] = {
-                { 0, 4, 4, 6, 255, 255, 255 },   // blanco arriba
-                { 0, 2, 4, 4, 205, 40, 40 },     // rojo
-                { 0, 0, 2, 2, 255, 255, 255 },   // blanco abajo (angosto)
-            };
+        {
+            // fila 0 = arriba. W blanco (211), G gris (145), R rojo (211,42,42), r rojo oscuro (137,20,20), K negro (el gancho), '.' transparente
+            static const char* const SPRITE[7] = { ".WWG", ".RRr", ".WGG", "..K.", "..K.", "K.K.", ".KK." };
+            const float u = 0.125f;          // un pixel de la celda de 8 (la celda mide 1 antes del escalado)
+            const float ox = -0.5f + 2.0f * u, oy = 0.5f;   // columnas 2 a 5 de la celda, desde la fila de arriba
             glBegin(GL_QUADS);
-            for (int i = 0; i < 3; i++) {
-                const R& q = rects[i];
-                glColor3b(q.r, q.g, q.b);
-                glVertex3v16(floattov16(ox + q.x0 * u), floattov16(oy + q.y0 * u), 0); glVertex3v16(floattov16(ox + q.x1 * u), floattov16(oy + q.y0 * u), 0);
-                glVertex3v16(floattov16(ox + q.x1 * u), floattov16(oy + q.y1 * u), 0); glVertex3v16(floattov16(ox + q.x0 * u), floattov16(oy + q.y1 * u), 0);
+            for (int r = 0; r < 7; r++) {
+                for (int c = 0; c < 4; ) {
+                    const char k = SPRITE[r][c];
+                    int e = c + 1;
+                    while (e < 4 && SPRITE[r][e] == k) e++;
+                    if (k != '.') {
+                        int cr = 0, cg = 0, cb = 0;
+                        if (k == 'W') { cr = cg = cb = 211; }
+                        else if (k == 'G') { cr = cg = cb = 145; }
+                        else if (k == 'R') { cr = 211; cg = 42; cb = 42; }
+                        else if (k == 'r') { cr = 137; cg = 20; cb = 20; }
+                        glColor3b(cr, cg, cb);
+                        const float x0 = ox + (float)c * u, x1 = ox + (float)e * u, y0 = oy - (float)(r + 1) * u, y1 = oy - (float)r * u;
+                        glVertex3v16(floattov16(x0), floattov16(y0), 0); glVertex3v16(floattov16(x1), floattov16(y0), 0);
+                        glVertex3v16(floattov16(x1), floattov16(y1), 0); glVertex3v16(floattov16(x0), floattov16(y1), 0);
+                    }
+                    c = e;
+                }
             }
             glEnd();
         }
