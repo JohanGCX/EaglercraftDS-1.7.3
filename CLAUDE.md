@@ -214,7 +214,7 @@ Set through `WorldConfig::setChunkMode(radius, cols, mul)` by `ChunkManager` whe
 | 1 `ds` | 2 (5×5) | 3 | 1× | Balanced. (With no saved options, a plain DS starts in `fast` and a DSi in `dsi`.) |
 | 2 `dsi` | 3 (7×7) | 4 | 1× (a 2× budget stretched frames, so dsi uses 4 columns at the same time budget as ds) | Only on DSi hardware; `Options::load()` and the menu map `dsi` to `ds` on a plain DS. |
 
-Pool sizing (constructor): `windowCount = (2r+1)²`, `maxChunks = windowCount + (r>1 ? 3 : 7)` → 16 / 28 / 52 chunks, `poolSize = maxChunks + POOL_SPARE`. The constructor allocates the pool with `new (std::nothrow)`; if allocation fails (or dsi leaves < 700 KB free for display lists) it drops one mode and retries. The initial 3×3 is created first; the rest of a larger window is requested after it completes (`fillPending`).
+Pool sizing (constructor): `windowCount = (2r+1)²` (in `dsi` minus the 4 corner chunks, which are always inside full fog: 45 instead of 49; see `cellInWindow` in `ChunkManager.cpp`), `maxChunks = windowCount + (r>1 ? 3 : 7)` → 16 / 28 / 52 chunks, `poolSize = maxChunks + POOL_SPARE`. The constructor allocates the pool with `new (std::nothrow)`; if allocation fails (or dsi leaves < 700 KB free for display lists) it drops one mode and retries. The initial 3×3 is created first; the rest of a larger window is requested after it completes (`fillPending`).
 
 Render distance in world units = `8 * radius + 1` (`WorldConfig::renderDistance()`): 9, 17, 25. `ChunkManager` reads the mode in its constructor and falls back if RAM is short. Changing the mode from the pause menu → Options reloads the world
 (`changeDimension(true)`): saves everything, recreates the manager and keeps the player position, mobs and dropped items.

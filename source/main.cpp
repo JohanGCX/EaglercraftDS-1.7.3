@@ -1437,6 +1437,9 @@ Weather::load();
                 }
             };
             if (!healthState.dead && !paused && canPause && ((keys_down & KEY_START) || miniPause)) {
+                // The debug screen and the pause menu share the bottom screen: with the debug screen open, its print every 30 frames (and every
+                // consoleDemoInit while it is "visible") wrote over the pause image and the Options list, so the menu looked frozen. Pausing closes it.
+                consoleVisible = false;
                 paused = true; pauseView = 1;
                 Sound::uiClick();
                 PauseScreen::show();
@@ -2525,7 +2528,7 @@ Weather::load();
         Prof::setContext((int)floorf(player->x), (int)floorf(player->y), (int)floorf(player->z), currentDimension);
         Prof::endFrame();
         static int profPrintCounter = 0;
-        if (consoleVisible && ++profPrintCounter >= 30) {
+        if (consoleVisible && !paused && ++profPrintCounter >= 30) {   // never over the pause menu
             profPrintCounter = 0;
             if (Options::get().debugCoordsOnly) {
                 iprintf("\x1b[2J");   // solo coordenadas: sin rendimiento ni memoria

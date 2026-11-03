@@ -24,6 +24,16 @@ static inline int floorDiv(int a, int b) {
     return d;
 }
 
+// Which chunks of the square window are loaded. In dsi (radius 3) the 4 corner chunks are skipped: from the centre chunk they are ~34 blocks away,
+// past where the fog reaches full density (85 % of the 25-block render distance), so they were generated, lit and kept in RAM without ever being seen.
+// The window becomes a rounded square of 45 chunks instead of 49 (about 124 KB of RAM and their generation time saved). The other modes keep the square:
+// their corners are close enough to be visible.
+static inline bool cellInWindow(int dx, int dz, int r) {
+    if (dx < -r || dx > r || dz < -r || dz > r) return false;
+    if (r >= 3 && (dx == -r || dx == r) && (dz == -r || dz == r)) return false;
+    return true;
+}
+
 ChunkManager::ChunkManager(unsigned int seed_, int startChunkX, int startChunkZ) {
     seed = seed_;
     Caves::reset(seed); // caché de cuevas nuevo para este mundo
@@ -40,7 +50,8 @@ ChunkManager::ChunkManager(unsigned int seed_, int startChunkX, int startChunkZ)
         const int radius = (mode == 0) ? 1 : (mode == 1 ? 2 : 3);
         windowRadius = radius;
         windowSide = 2 * radius + 1;
-        windowCount = windowSide * windowSide;
+        windowCount = 0;
+        for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) if (cellInWindow(dx, dz, radius)) windowCount++;
         maxChunks = windowCount + (radius > 1 ? 3 : 7);
         poolSize = maxChunks + POOL_SPARE;
 
@@ -241,7 +252,7 @@ void ChunkManager::update(float playerX, float playerZ) {
             if (!slotUsed[i]) continue;
             int dx = chunkPosX[i] - ccx;
             int dz = chunkPosZ[i] - ccz;
-            chunks[i]->setInWindow(dx >= -windowRadius && dx <= windowRadius && dz >= -windowRadius && dz <= windowRadius);
+            chunks[i]->setInWindow(cellInWindow(dx, dz, windowRadius));
         }
     }
 
@@ -398,6 +409,7 @@ void ChunkManager::update(float playerX, float playerZ) {
         int idx = 0;
         for (int dx = -windowRadius; dx <= windowRadius; dx++) {
             for (int dz = -windowRadius; dz <= windowRadius; dz++) {
+                if (!cellInWindow(dx, dz, windowRadius)) continue;   // dsi: no corners
                 targetX[idx] = playerChunkX + dx;
                 targetZ[idx] = playerChunkZ + dz;
                 idx++;
