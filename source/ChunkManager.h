@@ -94,7 +94,12 @@ private:
 
     unsigned int seed;
 
-    int worldToChunkCoord(float worldPos) const;
+    MC_HOT int worldToChunkCoord(float worldPos) const;
+    // Slot of the chunk at chunk coordinates (cx, cz), or -1 if it is not loaded. Tries a small direct-mapped table first and
+    // falls back to the linear scan. Every hint is checked against slotUsed/chunkPosX/chunkPosZ, so a stale entry can only cost
+    // a scan, never return the wrong chunk (that is why nobody has to keep the table up to date).
+    MC_HOT int findSlot(int cx, int cz) const;
+    mutable unsigned char chunkLookup[64] = {};   // index: ((cx & 7) << 3) | (cz & 7); a 7 x 7 window never collides with itself
     int findOrCreateSlot(int cx, int cz, const int* protectX = nullptr, const int* protectZ = nullptr, int protectCount = 0);
     mutable Chunk* lastUsedChunk = nullptr;
     mutable int lastUsedChunkX = 0;

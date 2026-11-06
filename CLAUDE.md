@@ -62,8 +62,9 @@ a "what to test" list → they build and report back (with the profiler output i
 - Toolchain: devkitPro **devkitARM** + **libnds** + libfat/filesystem + **grit**. Install on any platform with `dkp-pacman -S nds-dev`.
 - Layout: `source/` (code), `graphics/` (PNG + `.grit` conversion settings), `tools/` (`alphakey`), `Makefile`, `LICENSE`, `README.md`, `CLAUDE.md`.
 - Build with `make` in a shell where `DEVKITPRO`/`DEVKITARM` are set. Output: `<folder name>.nds` (the Makefile uses `basename $(CURDIR)` as the target name).
-- Compiler flags (Makefile): `-g -Wall -O2 -march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -ffunction-sections -fdata-sections -mthumb -mthumb-interwork -DARM9`, C++: `-fno-rtti -fno-exceptions -std=gnu++11`;
-  link with `--gc-sections`, libs `-lfilesystem -lfat -lnds9`. No exceptions, no RTTI, C++11 only.
+- Compiler flags (Makefile): `-g -Wall -O2 -march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -ffunction-sections -fdata-sections -mthumb -mthumb-interwork -DARM9`, C++: `-fno-rtti -fno-exceptions -fno-threadsafe-statics -std=gnu++11`;
+  link with `--gc-sections`, libs `-lfilesystem -lfat -lnds9`. No exceptions, no RTTI, C++11 only. `-fno-threadsafe-statics`: the game is single-threaded, so function-local
+  statics need no guard. Optional defines: `-DMC_NO_ITCM` (keep the `MC_HOT` functions in main RAM), `-DMC_NO_DSI_BOOST` (do not request the 133 MHz DSi clock); see §7.9.
   Files listed in `SMALL_OFILES` are compiled with `-Os`. Current list: `CraftingScreen InventoryScreen MenuFont TextKeyboard NewWorldMenu Options PauseScreen SettingsMenu SubScreenMenu TopScreenMenu WorldSelectMenu GameOverScreen MenuPanorama SignManager WorldSave Profiler Governor Furnace ChestStore Redstone Pistons NoteBlocks TntManager Dispenser Projectiles MinecartManager BoatManager PaintingManager PartialBlocks` (all `.o`).
   Add a file to that list if it is cold code and RAM is tight. An experiment compiling hot math in ARM mode (`-marm`) was slower (a column went from 2.5 to 23 ms: 16-bit RAM bus + 8 KB cache favour compact Thumb) and is commented out — do not retry it.
 - Output name: `TARGET := basename $(CURDIR)`; build dir `build/`; `DATA := data`, `INCLUDES := include` (these two directories may not exist; fine).
@@ -280,6 +281,35 @@ File format: raw `blocks[8][128][8]` (8192 bytes, one byte per `BlockType`) foll
 (`loadFromFile` → `continueLoad`, spread over several frames, because biome+colours cost 19–46 ms at once). A file whose layer y=0 is entirely air is treated as corrupt, deleted, and the chunk regenerates from the seed.
 Unmodified chunks are never saved: they regenerate deterministically. Extra per-world files are listed in §14.
 
+### 7.7 Terrain generator versions (per world)
+
+`WorldConfig::terrainGen()` is the terrain generator version of the world being played; it is saved in `meta.dat` (`WorldMetadata::terrainGen`, appended at the end, so
+older files read it as 0). **0** = the original generator (`octaveNoise2D`, whose raw output reaches about ±35 and is then clamped to ±1, so ~91% of the land
+columns sit exactly on height 50 or 30). **1** = normalized fBm relief (`PerlinNoise::fbmNoise2D`, base height 42, ±10 band, 1–3% of the columns at the clamp).
+New worlds use `CURRENT_TERRAIN_GEN`, or version 0 when the debug option `oldterraingenerator` (`Options::oldTerrainGenerator`, options.dat byte 24) is on; saved worlds keep the version they were created with, so there are no seams between saved and newly generated chunks.
+**Never change what an existing version produces; add a new version instead** (and raise `CURRENT_TERRAIN_GEN`). `terrainHeightCached` clears its cache when the version changes.
+
+### 7.8 DSi-only terrain caches
+
+`terrainHeightCached` (overworld) and `netherColumnAt` (Nether) use direct-mapped column caches. The static tables (48 x 48 and 40 x 40, modulo index) were sized for the DS
+windows (up to 5 x 5 chunks = 40 columns). The DSi window is 7 x 7 chunks = 56 columns, so with `WorldConfig::viewRadius() >= 3` both functions use 64 x 64 tables
+(`HeightCacheBig` 36 KB, `NetherColCacheBig` 56 KB, mask index, allocated with `new (std::nothrow)` only there). If the allocation fails they fall back to the static tables.
+Both are pure caches validated by (gx, gz): a different size only changes the hit rate, never the result. The DS RAM use is unchanged.
+The debug screen's last line shows the generator of the current world (`Seed <n>  terrain gen <0|1>`).
+
+### 7.9 Hot lookups (`findSlot`, `worldToChunkCoord`, ITCM)
+
+- `ChunkManager::findSlot(cx, cz)` is the single place that maps chunk coordinates to a slot. It first tries `chunkLookup[64]` (index `((cx & 7) << 3) | (cz & 7)`; a 7 x 7
+  window never collides with itself) and validates the hint against `slotUsed/chunkPosX/chunkPosZ`, falling back to the linear scan. A stale hint costs a scan and never returns
+  the wrong chunk, so nothing has to keep the table in sync. `getChunkByChunkCoord` and the light code's chunk lookup both use it (after their one-entry `lastUsed` caches).
+- `worldToChunkCoord` = `floor((worldPos + 4) / 8)` without `floorf`: one truncation, a sign fix for negative non-integers (read from the float's sign bit), then `>> 3`.
+  It `static_assert`s 8 x 8 chunks.
+- `Chunk::getBlockType` is inline in `Chunk.h` (one unsigned compare per axis).
+- `MC_HOT` (`WorldConfig.h`) puts `worldToGrid`, `worldToChunkCoord` and `findSlot` in **ITCM** (32 KB zero-wait memory inside the ARM9, shared with libnds). Keep it to tiny,
+  very hot functions; if the link fails with an ITCM overflow, build with `-DMC_NO_ITCM`.
+- `main()` asks for the 133 MHz ARM9 clock on DSi (`SCFG_CLK` bit 0, only when `isDSiMode()`); if the launcher already set it, or locked SCFG, nothing changes. Frame budgets
+  use the bus timers, which do not change speed. Disable with `-DMC_NO_DSI_BOOST`.
+
 ---
 
 ## 8. Blocks and items
@@ -391,7 +421,9 @@ Unmodified chunks are never saved: they regenerate deterministically. Extra per-
 6. **I/O in small pieces** (one chunk file per frame per queue).
 7. **Mind RAM:** pool objects, free display lists outside the window, share static buffers, use `-Os` for cold code, compress menu images.
 8. After any optimisation, ask for a new `spikes.txt` and compare. Typical remaining hot spots: band rebuild (`list`), neighbour border refresh (`neighbors`), ore/lake generation, mob logic (`t mobs`), mob drawing (`ent`), chunk save (`chunk save`, FAT I/O).
-9. Real hardware matters: the GPU silently drops polygons/vertices over the limit ("slivers"/missing faces); emulators such as no$gba hide limits that melonDS and real DS Fat show.
+9. **Know the hot lookups.** Block and chunk queries run thousands of times per frame: go through `findSlot` / the inline `getBlockType` (§7.9), keep caches sized for the
+   largest window (the DSi one, 7 x 7 chunks = 56 columns), and prefer power-of-two tables with mask indexes over modulo.
+10. Real hardware matters: the GPU silently drops polygons/vertices over the limit ("slivers"/missing faces); emulators such as no$gba hide limits that melonDS and real DS Fat show.
 
 ---
 
@@ -503,7 +535,7 @@ Consequence: the animated cells must exist in `terrain.png` at those coordinates
 ├── skins/                 player skins
 └── worlds/
     ├── world1 … worldN/   saved worlds (or .tempworld while a new world has never been saved)
-    │   ├── meta.dat        player position/inventory/spawn/time/armor …
+    │   ├── meta.dat        player position/inventory/spawn/time/armor, terrain generator version …
     │   ├── name.dat        world name
     │   ├── dim.dat bed.dat health.dat
     │   ├── furnaces.dat chests.dat carts.dat boats.dat paintings.dat signs.dat wolves.dat notes.dat maps.dat
@@ -514,7 +546,7 @@ Consequence: the animated cells must exist in `terrain.png` at those coordinates
 `WorldSave` tracks the active folder. New worlds start in `.tempworld` and are renamed to `worldN` at first save; an existing world is played in place. On boot `recoverInterruptedSession()`
 restores or discards a leftover `.tempworld`. Deleting a world removes subfolders too (FAT `remove()` doesn't delete non-empty folders).
 
-### `options.dat` layout (23 bytes; older files are shorter and missing fields keep defaults)
+### `options.dat` layout (25 bytes; older files are shorter and missing fields keep defaults)
 
 | Byte | Field | Notes |
 |---|---|---|
@@ -536,6 +568,7 @@ restores or discards a leftover `.tempworld`. Deleting a world removes subfolder
 | 21 | spikeLog | |
 | 22 | debugCoordsOnly | |
 | 23 | oldMobSpawnLimit | 1 = original (pre-RC1) mob limits; 0 (default) = half. See `MobCull.h` for draw culling and far-AI throttling |
+| 24 | oldTerrainGenerator | 1 = NEW worlds are created with terrain generator 0 (original, plateaus); 0 (default) = current generator. Saved worlds always keep their own (see §7.7) |
 
 **To add an option:** add the field to `Options::Data` (+ comment), set the default in `Options::load()`, read it with an `n >= <size>` guard, write it in `Options::save()` and bump the buffer size in both places,
 then add a row in `SettingsMenu.cpp` (main list or a submenu) and handle it in `SettingsMenu::update`. Always append the byte at the end.
@@ -543,7 +576,7 @@ then add a row in `SettingsMenu.cpp` (main list or a submenu) and handle it in `
 ### Settings UI map (`SettingsMenu.cpp`)
 
 Main list: `back, difficulty, controls (submenu), auto jump, chunk mode, render, default seed, custom default seed, clockcompassinvupdate, debug options (submenu), particles, sound, inventoryMap`.
-Controls submenu: `back, controls mode, reset this profile, one row per action`. Debug options submenu: `back, debug large chest, spikes.txt log, debug screen info (full/coords), debug screen options`.
+Controls submenu: `back, controls mode, reset this profile, one row per action`. Debug options submenu: `back, debug large chest, spikes.txt log, debug screen info (full/coords), debug screen options, oldmobspawnlimit, oldterraingenerator`.
 Every A/B/LEFT/RIGHT press plays `Sound::uiClick()`.
 
 ---
@@ -581,5 +614,5 @@ See `README.md` for the user-facing version of this list.
 
 ## 18. Credits and license
 
-Code written by Claude (Anthropic) under the direction of JohanGCX, who also designed and implemented the menus exclusive to this port. Game logic reference: the decompiled Beta 1.7.3 by PeytonPlayz595 (Eaglercraft).
+Code written by Claude (Anthropic) under the direction of JohanGCX, who also designed and implemented the menus exclusive to this port. Community contributions: **figuidos** (https://www.youtube.com/@figuidos) — chunk lookup and ITCM optimizations, DSi terrain caches, the normalized terrain generator (version 1) and the DSi clock boost. Game logic reference: the decompiled Beta 1.7.3 by PeytonPlayz595 (Eaglercraft).
 *Minecraft* and its assets belong to Mojang Studios. Source code is MIT licensed (see `LICENSE`); game assets are not covered by that license.

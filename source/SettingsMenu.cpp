@@ -142,7 +142,7 @@ static bool updateControls(u32 keysDown) {
 
 // ---- Submenu "debug options": cofres de debug, spikes.txt, contenido de la debug screen y sus teclas ----
 static int dSel = 0;
-static const int D_ROWS = 6;   // 0 back, 1 debug large chest, 2 spike log, 3 debug screen info, 4 debug screen options, 5 old mob spawn limit
+static const int D_ROWS = 7;   // 0 back, 1 debug large chest, 2 spike log, 3 debug screen info, 4 debug screen options, 5 old mob spawn limit, 6 old terrain generator
 
 static void drawDebug() {
     consoleClear();
@@ -156,6 +156,7 @@ static void drawDebug() {
             case 3: printRow(sel, "debug screen info", Options::get().debugCoordsOnly ? "coords" : "full"); break;
             case 4: printRow(sel, "debug screen options", Options::get().debugScreenOptions ? "on" : "off"); break;
             case 5: printRow(sel, "oldmobspawnlimit", Options::get().oldMobSpawnLimit ? "true" : "false"); break;
+            case 6: printRow(sel, "oldterraingenerator", Options::get().oldTerrainGenerator ? "true" : "false"); break;
         }
     }
     iprintf("\n");
@@ -163,6 +164,7 @@ static void drawDebug() {
     else if (dSel == 4) iprintf("on: B = day/night, Y = rain,\nX = damage (peaceful only)\n");
     else if (dSel == 2) iprintf("slow frames (30 ms+) are saved\nto /mcdsefiles/spikes.txt\n");
     else if (dSel == 5) iprintf("true: the old mob limits (twice\nas many mobs, slower)\nfalse: half the mobs (default)\n");
+    else if (dSel == 6) iprintf("true: NEW worlds use the old\nterrain (plateaus)\nfalse: new terrain (default)\nSaved worlds keep their own\n");
 }
 
 static void openDebug() { s_view = 2; dSel = 0; drawDebug(); }
@@ -181,7 +183,8 @@ static bool updateDebug(u32 keysDown) {
             else if (dSel == 2) o.spikeLog = !o.spikeLog;
             else if (dSel == 3) o.debugCoordsOnly = !o.debugCoordsOnly;
             else if (dSel == 4) o.debugScreenOptions = !o.debugScreenOptions;
-            else o.oldMobSpawnLimit = !o.oldMobSpawnLimit;
+            else if (dSel == 5) o.oldMobSpawnLimit = !o.oldMobSpawnLimit;
+            else o.oldTerrainGenerator = !o.oldTerrainGenerator;
             Options::save();
             drawDebug();
         }

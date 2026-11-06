@@ -386,15 +386,21 @@ static const int MAX_FLOWERS_PER_CHUNK = 4;    // flores (diente de león y rosa
 
 static const int TERRAIN_SEA_LEVEL = 38;
 
+// Generator 1 relief: fbmNoise2D is about -1..1, this makes it use the whole +-HEIGHT_RANGE band while only 1-3% of the columns reach the clamp
+// (the original octaveNoise2D reached +-35, so 91% of the columns sat exactly on the clamp: flat plateaus at 50 and flat basins at 30).
+static const float TERRAIN_GEN1_RELIEF = 3.4f;
+
 static int terrainHeightFrom(int gx, int gz, float biomeValue) {
-    const int BASE_HEIGHT = 40;
+    const bool gen1 = WorldConfig::terrainGen() >= 1;
+    const int BASE_HEIGHT = gen1 ? 42 : 40;
     const int HEIGHT_RANGE = 10;
     const int OCEAN_BASE_HEIGHT = 30;
     const float NOISE_SCALE = 0.2f;
     const float OCEAN_THRESHOLD = 0.25f;
     const float TRANSITION_WIDTH = 0.08f;
 
-    float perlinRaw = PerlinNoise::octaveNoise2D((float)gx * NOISE_SCALE, (float)gz * NOISE_SCALE);
+    float perlinRaw = gen1 ? PerlinNoise::fbmNoise2D((float)gx * NOISE_SCALE, (float)gz * NOISE_SCALE) * TERRAIN_GEN1_RELIEF
+                           : PerlinNoise::octaveNoise2D((float)gx * NOISE_SCALE, (float)gz * NOISE_SCALE);
     float noiseValue = perlinRaw;
     if (noiseValue > 1.0f) noiseValue = 1.0f;
     if (noiseValue < -1.0f) noiseValue = -1.0f;
@@ -418,7 +424,47 @@ static struct HeightCache {
     HeightCache() { for (int i = 0; i < 48 * 48; i++) { tx[i] = 0x7FFFFFFF; tz[i] = 0; h[i] = 0; } }
 } s_heightCache;
 
+// DSi mode (7 x 7 chunks = 56 columns): the 48 x 48 table above was made for the DS windows (up to 5 x 5 = 40 columns), so on the DSi two columns 48 apart
+// (the east and west edge of the window) evicted each other, and every lookup did four integer divisions. In DSi mode a 64 x 64 table is used instead:
+// a power of two, so the index is a mask (no division) and the whole window fits. It is allocated only there (36 KB), so the DS keeps its RAM.
+struct HeightCacheBig {
+    s32 tx[64 * 64];
+    s32 tz[64 * 64];
+    u8 h[64 * 64];
+};
+static HeightCacheBig* s_heightBig = nullptr;
+static bool s_heightBigFailed = false;
+static void clearHeightBig() {
+    if (!s_heightBig) return;
+    for (int i = 0; i < 64 * 64; i++) { s_heightBig->tx[i] = 0x7FFFFFFF; s_heightBig->tz[i] = 0; s_heightBig->h[i] = 0; }
+}
+
+static int s_heightGen = 0;   // generator version the cached heights belong to
+static void clearHeightCache() {
+    for (int i = 0; i < 48 * 48; i++) { s_heightCache.tx[i] = 0x7FFFFFFF; s_heightCache.tz[i] = 0; s_heightCache.h[i] = 0; }
+    clearHeightBig();
+    s_heightGen = WorldConfig::terrainGen();
+}
+
 static int terrainHeightCached(int gx, int gz, const float* biomeValue) {
+    if (s_heightGen != WorldConfig::terrainGen()) clearHeightCache();   // another world with another generator version: the cached heights are stale
+    if (WorldConfig::viewRadius() >= 3) {   // DSi window: big table (see HeightCacheBig); if the allocation ever fails the small table below keeps working
+        if (!s_heightBig && !s_heightBigFailed) {
+            s_heightBig = new (std::nothrow) HeightCacheBig;
+            if (s_heightBig) clearHeightBig(); else s_heightBigFailed = true;
+        }
+        if (s_heightBig) {
+            const int j = ((gx & 63) << 6) | (gz & 63);
+            if (s_heightBig->tx[j] == gx && s_heightBig->tz[j] == gz) return s_heightBig->h[j];
+            float bvj = biomeValue ? *biomeValue
+                                   : Noise::biomeNoise2D((float)gx * BiomeConfig::BIOME_NOISE_SCALE, (float)gz * BiomeConfig::BIOME_NOISE_SCALE);
+            int hj = terrainHeightFrom(gx, gz, bvj);
+            s_heightBig->tx[j] = gx;
+            s_heightBig->tz[j] = gz;
+            s_heightBig->h[j] = (u8)(hj < 0 ? 0 : (hj > 255 ? 255 : hj));
+            return hj;
+        }
+    }
     int i = (((gx % 48) + 48) % 48) * 48 + (((gz % 48) + 48) % 48);
     if (s_heightCache.tx[i] == gx && s_heightCache.tz[i] == gz) return s_heightCache.h[i];
     float bv = biomeValue ? *biomeValue
@@ -439,7 +485,35 @@ static struct NetherColCache {
     void reset() { for (int i = 0; i < 40 * 40; i++) { tx[i] = 0x7FFFFFFF; tz[i] = 0; c[i].floorTop = 0; c[i].ceilBottom = 0; c[i].pillar = 0; c[i].surface = 0; } }
 } s_netherCache;
 
+// Same story as the height cache: 40 x 40 columns (5 x 5 chunks) is the DS window; the DSi window is 56 columns wide. 64 x 64, DSi only (56 KB), mask index.
+struct NetherColCacheBig {
+    s32 tx[64 * 64];
+    s32 tz[64 * 64];
+    NetherGen::Col c[64 * 64];
+};
+static NetherColCacheBig* s_netherBig = nullptr;
+static bool s_netherBigFailed = false;
+static void clearNetherBig() {
+    if (!s_netherBig) return;
+    for (int i = 0; i < 64 * 64; i++) { s_netherBig->tx[i] = 0x7FFFFFFF; s_netherBig->tz[i] = 0; s_netherBig->c[i].floorTop = 0; s_netherBig->c[i].ceilBottom = 0; s_netherBig->c[i].pillar = 0; s_netherBig->c[i].surface = 0; }
+}
+
 static const NetherGen::Col& netherColumnAt(int gx, int gz) {
+    if (WorldConfig::viewRadius() >= 3) {
+        if (!s_netherBig && !s_netherBigFailed) {
+            s_netherBig = new (std::nothrow) NetherColCacheBig;
+            if (s_netherBig) clearNetherBig(); else s_netherBigFailed = true;
+        }
+        if (s_netherBig) {
+            const int j = ((gx & 63) << 6) | (gz & 63);
+            if (s_netherBig->tx[j] != gx || s_netherBig->tz[j] != gz) {
+                s_netherBig->c[j] = NetherGen::computeColumn(gx, gz);
+                s_netherBig->tx[j] = gx;
+                s_netherBig->tz[j] = gz;
+            }
+            return s_netherBig->c[j];
+        }
+    }
     int i = (((gx % 40) + 40) % 40) * 40 + (((gz % 40) + 40) % 40);
     if (s_netherCache.tx[i] != gx || s_netherCache.tz[i] != gz) {
         s_netherCache.c[i] = NetherGen::computeColumn(gx, gz);
@@ -456,8 +530,9 @@ static void resetTerrainCachesIfSeedChanged(unsigned int seed) {
     s_cacheSeed = seed;
     s_cacheSeedKnown = true;
     s_netherCache.reset();
+    clearNetherBig();
     NetherGen::resetLattice();
-    for (int i = 0; i < 48 * 48; i++) { s_heightCache.tx[i] = 0x7FFFFFFF; s_heightCache.tz[i] = 0; s_heightCache.h[i] = 0; }
+    clearHeightCache();
 }
 
 namespace {
@@ -1316,7 +1391,7 @@ float Chunk::gridToWorldZ(int zi) const {
     return chunkZ * SIZE_Z + zi - SIZE_Z / 2.0f + 0.5f;
 }
 
-bool Chunk::worldToGrid(float worldX, float worldY, float worldZ,
+MC_HOT bool Chunk::worldToGrid(float worldX, float worldY, float worldZ,
                          int& outXi, int& outYi, int& outZi) const {
     int xi = (int)(worldX - chunkX * SIZE_X + SIZE_X / 2.0f);
     int yi = (int)(worldY + 1.0f + 0.5f);
@@ -3475,12 +3550,7 @@ void Chunk::recalculateFullFaceCache(const ChunkManager* manager) {
     }
 }
 
-BlockType Chunk::getBlockType(int xi, int yi, int zi) const {
-    if (xi < 0 || xi >= SIZE_X) return BlockType::AIR;
-    if (yi < 0 || yi >= SIZE_Y) return BlockType::AIR;
-    if (zi < 0 || zi >= SIZE_Z) return BlockType::AIR;
-    return blocks[xi][yi][zi];
-}
+// Chunk::getBlockType is now inline in Chunk.h
 
 void Chunk::beginFullFaceCacheRecalc() {
     cacheRecalcPending = true;

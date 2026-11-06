@@ -103,8 +103,30 @@ ChunkManager::~ChunkManager() {
     }
 }
 
-int ChunkManager::worldToChunkCoord(float worldPos) const {
-    return (int)floorf(worldPos / WorldConfig::SIZE_X + 0.5f);
+// floor((worldPos + SIZE_X / 2) / SIZE_X) without calling floorf and without a float divide/multiply:
+// truncate once, fix the sign only for negative values (checked on the float's sign bit, so positives pay no soft-float compare),
+// then an arithmetic shift does the floor division by 8.
+MC_HOT int ChunkManager::worldToChunkCoord(float worldPos) const {
+    static_assert(WorldConfig::SIZE_X == 8 && WorldConfig::SIZE_Z == 8, "worldToChunkCoord assumes 8 x 8 chunks (shift by 3)");
+    const float a = worldPos + (float)(WorldConfig::SIZE_X / 2);
+    int i = (int)a;                                   // truncates toward zero
+    u32 bits;
+    __builtin_memcpy(&bits, &a, sizeof(bits));
+    if ((bits >> 31) && (float)i != a) i--;           // negative and not already an integer: truncation rounded up, step down
+    return i >> 3;                                    // arithmetic shift = floor(i / 8)
+}
+
+MC_HOT int ChunkManager::findSlot(int cx, int cz) const {
+    const int key = ((cx & 7) << 3) | (cz & 7);
+    const int hint = chunkLookup[key];
+    if (hint < maxChunks && slotUsed[hint] && chunkPosX[hint] == cx && chunkPosZ[hint] == cz) return hint;
+    for (int i = 0; i < maxChunks; i++) {
+        if (slotUsed[i] && chunkPosX[i] == cx && chunkPosZ[i] == cz) {
+            chunkLookup[key] = (unsigned char)i;
+            return i;
+        }
+    }
+    return -1;
 }
 
 Chunk* ChunkManager::acquireChunk(int cx, int cz) {
@@ -441,16 +463,12 @@ Chunk* ChunkManager::getChunkAt(float worldX, float worldZ) const {
         return lastUsedChunk;
     }
 
-    for (int i = 0; i < maxChunks; i++) {
-        if (slotUsed[i] && chunkPosX[i] == cx && chunkPosZ[i] == cz) {
-            lastUsedChunk = chunks[i];
-            lastUsedChunkX = cx;
-            lastUsedChunkZ = cz;
-            return chunks[i];
-        }
-    }
-
-    return nullptr;
+    const int s = findSlot(cx, cz);
+    if (s < 0) return nullptr;
+    lastUsedChunk = chunks[s];
+    lastUsedChunkX = cx;
+    lastUsedChunkZ = cz;
+    return chunks[s];
 }
 
 bool ChunkManager::isGenerationComplete() const {
@@ -556,15 +574,12 @@ Chunk* ChunkManager::getChunkByChunkCoord(int cx, int cz) const {
     if (lastLightChunk && lastLightChunkX == cx && lastLightChunkZ == cz) {
         return lastLightChunk;
     }
-    for (int i = 0; i < maxChunks; i++) {
-        if (slotUsed[i] && chunkPosX[i] == cx && chunkPosZ[i] == cz) {
-            lastLightChunk = chunks[i];
-            lastLightChunkX = cx;
-            lastLightChunkZ = cz;
-            return chunks[i];
-        }
-    }
-    return nullptr;
+    const int s = findSlot(cx, cz);
+    if (s < 0) return nullptr;
+    lastLightChunk = chunks[s];
+    lastLightChunkX = cx;
+    lastLightChunkZ = cz;
+    return chunks[s];
 }
 
 void ChunkManager::floodFillSkyLight(LightNode* seeds, int seedCount) const {

@@ -34,7 +34,7 @@ and wherever the DS could not keep up, the deviation is deliberate and documente
 ## Features
 
 **World**
-- Deterministic, chunked terrain (8 × 128 × 8 chunks) with Perlin noise, biomes (ocean, desert, forest, taiga, plains), trees (including
+- Deterministic, chunked terrain (8 × 128 × 8 chunks) with normalized Perlin (fBm) relief, biomes (ocean, desert, forest, taiga, plains), trees (including
   the big oak and spruce shapes), cacti, dead bushes, flowers and tall grass
 - Caves, bedrock floor, ore veins (coal, iron, gold, diamond, redstone, lapis), lakes, springs and dungeons with mob spawners
 - The **Nether**: obsidian portals, a separate dimension with its own terrain, lava seas and a portal-linked 8:1 coordinate scale
@@ -107,6 +107,8 @@ EaglercraftDS-1.7.3/
 
 Notes:
 
+- Optional build defines: `-DMC_NO_ITCM` keeps the hot functions out of ITCM (use it if the link fails with an ITCM overflow) and `-DMC_NO_DSI_BOOST`
+  does not request the 133 MHz DSi clock.
 - The build converts the PNGs in `graphics/` with `grit`. For the terrain and item atlases it first runs `tools/alphakey`, which turns
   PNG transparency into the magenta key colour (`FF00FF`) that the DS needs. This keeps standard RGBA texture packs usable.
 - Main RAM is almost fully used. Rarely used code (menus, saving, redstone, …) is compiled with `-Os` on purpose. Please keep that in mind when
@@ -173,7 +175,7 @@ Open the pause menu and choose **Options** (also available from the title screen
 | clockcompassinvupdate | Keep the compass and clock sprites updating in the inventory |
 | particles / sound | Turn effects on or off |
 | inventoryMap | New worlds start with a map in the last hotbar slot |
-| debug options | Developer tools: debug chests, `spikes.txt` log, debug screen contents and shortcuts |
+| debug options | Developer tools: debug chests, `spikes.txt` log, debug screen contents and shortcuts, `oldmobspawnlimit` (the old, higher mob limits) and `oldterraingenerator` (new worlds use the original terrain generator) |
 
 ## Performance
 
@@ -184,6 +186,8 @@ The DS has very little memory and processing power, so the engine is built aroun
 - **Time-sliced work.** World generation, lighting, mesh building and saving are split across frames with a shared time budget so the frame
   rate stays steady
 - **Display lists** for terrain, level of detail for distant chunks, view-based culling, hardware fog and a fixed-point-heavy design (no FPU)
+- **Fast lookups for the hot paths.** Chunk and block queries use a direct-mapped slot table, inline block reads and a few tiny functions placed in the
+  ARM9's zero-wait ITCM memory. On DSi the game also requests the 133 MHz CPU clock and uses larger terrain caches sized for the `dsi` window
 - **A built-in profiler.** *Options → debug options* lets you show it on the debug screen (open it with the touch
   screen mini-button) and optionally log slow frames to `/mcdsefiles/spikes.txt`
 
@@ -193,6 +197,8 @@ This is a port to very limited hardware, so some things are intentionally differ
 
 - Chunks are 8 × 8 blocks (instead of 16 × 16) and view distance is short. Terrain, caves, lakes and structures are scaled to match
 - The Nether terrain is a simplified version of the original generator (2D noise) for performance
+- Overworld terrain is a 2D height field (normalized fBm noise) instead of Beta's 3D density field. Worlds created before this generator keep the original one
+  (version 0), and *Options → debug options → oldterraingenerator* creates new worlds with it too
 - Animals and hostile mobs are not saved with the world, to save space on the SD card. Tamed wolves are saved
 - No background music (disabled for performance). Sound effects are a reduced set
 - No stars or sunrise/sunset glow in the sky. The sun and moon are shown only in `ds` and `dsi` chunk modes, at a shorter distance
@@ -222,6 +228,8 @@ This project would not exist without:
   save system, working from the decompiled Beta 1.7.3 sources
 - **[JohanGCX](https://github.com/JohanGCX)**: project lead; guided the vision and direction of the development and designed and implemented the menus
   exclusive to this port
+- **[figuidos](https://www.youtube.com/@figuidos)**: community contributor; chunk lookup and ITCM optimizations, DSi terrain caches and clock boost, the
+  normalized terrain generator, plus testing and bug reports
 - **[PeytonPlayz595](https://github.com/PeytonPlayz595)**: the decompilation of Minecraft Beta 1.7.3
   ([Eaglercraft Beta 1.7.3](https://github.com/PeytonPlayz595/Beta-1.7.3)), the reference for the game logic
 - **The community and fans**, who proposed ideas, reported bugs and gave feedback during development through itch.io and YouTube

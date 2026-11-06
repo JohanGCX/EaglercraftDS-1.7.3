@@ -17,6 +17,7 @@ struct WorldMetadata {
     int armorDurability[4];
     float spawnX, spawnZ;     // punto de aparicion del mundo (a lo que apunta la brujula); agregado al final
     int spawnSet;
+    int terrainGen;           // generador de terreno del mundo (0 = original, 1 = relieve normalizado); agregado al final: los mundos anteriores traen 0
 };
 
 class WorldSave {

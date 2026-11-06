@@ -20,7 +20,8 @@ namespace Options {
         bool debugScreenOptions;   // en la debug screen: B = dia/noche, Y = lluvia, X = daño on/off (false por defecto)
         unsigned char renderQuality;   // 0 = high, 1 = balanced, 2 = fast (menos detalle cercano y menos vertices por cuadro)
         bool inventoryMap;         // el jugador siempre lleva un mapa en la casilla 9 de la barra (como la Legacy Edition)
-	bool oldMobSpawnLimit;
+        bool oldMobSpawnLimit;     // debug: los limites de mobs de antes (el doble de mobs); false = la mitad (por defecto)
+        bool oldTerrainGenerator;  // debug: los mundos NUEVOS usan el generador de terreno original (version 0); los guardados conservan el suyo
     };
 
     Data& get();

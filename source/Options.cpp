@@ -28,9 +28,10 @@ void Options::load() {
     s_data.debugCoordsOnly = false;
     s_data.renderQuality = 0;
     s_data.oldMobSpawnLimit = false;
+    s_data.oldTerrainGenerator = false;
     FILE* f = fopen(OPTIONS_PATH, "rb");
     if (!f) return;
-    unsigned char buf[24];
+    unsigned char buf[25];
     size_t n = fread(buf, 1, sizeof(buf), f);
     if (n >= 5 && memcmp(buf, "MCO1", 4) == 0) {
         s_data.debugLargeChest = (buf[4] & 1) != 0;
@@ -55,6 +56,7 @@ void Options::load() {
         if (n >= 22) s_data.spikeLog = (buf[21] == 1);
         if (n >= 23) s_data.debugCoordsOnly = (buf[22] == 1);
         if (n >= 24) s_data.oldMobSpawnLimit = (buf[23] == 1);
+        if (n >= 25) s_data.oldTerrainGenerator = (buf[24] == 1);
     }
     fclose(f);
 }
@@ -62,11 +64,11 @@ void Options::load() {
 bool Options::save() {
     FILE* f = fopen(OPTIONS_PATH, "wb");
     if (!f) return false;
-    unsigned char buf[24] = { 'M', 'C', 'O', '1', (unsigned char)(s_data.debugLargeChest ? 1 : 0), s_data.chunkMode,
+    unsigned char buf[25] = { 'M', 'C', 'O', '1', (unsigned char)(s_data.debugLargeChest ? 1 : 0), s_data.chunkMode,
                               s_data.seedMode, (unsigned char)(s_data.customSeedSet ? 1 : 0),
                               (unsigned char)(s_data.customSeed & 0xFF), (unsigned char)((s_data.customSeed >> 8) & 0xFF),
                               (unsigned char)((s_data.customSeed >> 16) & 0xFF), (unsigned char)((s_data.customSeed >> 24) & 0xFF),
-                              s_data.controlMode, (unsigned char)(s_data.autoJump ? 1 : 0), (unsigned char)(s_data.clockCompassInvUpdate ? 1 : 0), (unsigned char)(s_data.particles ? 1 : 0), (unsigned char)(s_data.sound ? 1 : 0), (unsigned char)(s_data.inventoryMap ? 0 : 1), (unsigned char)(s_data.debugScreenOptions ? 1 : 0), s_data.difficulty, s_data.renderQuality, (unsigned char)(s_data.spikeLog ? 1 : 0), (unsigned char)(s_data.debugCoordsOnly ? 1 : 0), (unsigned char)(s_data.oldMobSpawnLimit ? 1 : 0) };
+                              s_data.controlMode, (unsigned char)(s_data.autoJump ? 1 : 0), (unsigned char)(s_data.clockCompassInvUpdate ? 1 : 0), (unsigned char)(s_data.particles ? 1 : 0), (unsigned char)(s_data.sound ? 1 : 0), (unsigned char)(s_data.inventoryMap ? 0 : 1), (unsigned char)(s_data.debugScreenOptions ? 1 : 0), s_data.difficulty, s_data.renderQuality, (unsigned char)(s_data.spikeLog ? 1 : 0), (unsigned char)(s_data.debugCoordsOnly ? 1 : 0), (unsigned char)(s_data.oldMobSpawnLimit ? 1 : 0), (unsigned char)(s_data.oldTerrainGenerator ? 1 : 0) };
     const bool ok = fwrite(buf, 1, sizeof(buf), f) == sizeof(buf);
     fclose(f);
     return ok;

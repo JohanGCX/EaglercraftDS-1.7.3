@@ -30,7 +30,7 @@ public:
     void setMetaQuiet(int xi, int yi, int zi, int meta);   // solo cambia la metadata (marca de hoja, etapa del retoño): no reconstruye geometria
 
     bool isSolidAt(float x, float y, float z) const;
-    bool worldToGrid(float worldX, float worldY, float worldZ,
+    MC_HOT bool worldToGrid(float worldX, float worldY, float worldZ,
                       int& outXi, int& outYi, int& outZi) const;
     float gridToWorldX(int xi) const;
     float gridToWorldY(int yi) const;
@@ -48,7 +48,12 @@ public:
     bool continueLoad();                   // etapa 2, repartida en cuadros: clima, bioma y colores, ocupacion. true = el chunk quedo completo
 
     int getHighestSolidY(int xi, int zi) const;
-    BlockType getBlockType(int xi, int yi, int zi) const;
+    // Inline: it is called from many .cpp files, and a real function call cost more than the lookup itself.
+    // One unsigned compare per axis covers both the negative and the too-big case.
+    BlockType getBlockType(int xi, int yi, int zi) const {
+        if ((unsigned)xi >= (unsigned)WorldConfig::SIZE_X || (unsigned)yi >= (unsigned)WorldConfig::SIZE_Y || (unsigned)zi >= (unsigned)WorldConfig::SIZE_Z) return BlockType::AIR;
+        return blocks[xi][yi][zi];
+    }
 
     int getChunkX() const { return chunkX; }
     int getChunkZ() const { return chunkZ; }

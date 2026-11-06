@@ -75,6 +75,19 @@ float PerlinNoise::generateNoise3D(float x, float y, float z) {
                     grad(permutations[BB+1],   x-1.0f, y-1.0f, z-1.0f))));
 }
 
+float PerlinNoise::fbmNoise2D(float x, float z) {
+    const float BASE_FREQUENCY = 0.0625f;     // lowest octave: features about 16 noise units wide (80 blocks at the terrain's 0.2 scale)
+    const float GAIN = 0.6f;                  // amplitude kept by each higher octave
+    const float NORMALIZE = 1.0f / 2.38336f;  // 1 + 0.6 + 0.6^2 + ... + 0.6^5
+    float total = 0.0f, amplitude = 1.0f, frequency = BASE_FREQUENCY;
+    for (int i = 0; i < OCTAVE_COUNT; i++) {
+        total += amplitude * generateNoise3D(x * frequency, z * frequency, 0.0f);
+        amplitude *= GAIN;
+        frequency *= 2.0f;
+    }
+    return total * NORMALIZE;
+}
+
 float PerlinNoise::octaveNoise2D(float x, float z) {
     float total = 0.0f;
     float frequency = 1.0f;

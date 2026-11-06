@@ -429,6 +429,11 @@ static int computeSkylightSubtract(u32 frames) {
 }
 
 int main(void) {
+    // DSi mode: ask for the 133 MHz ARM9 clock (SCFG_CLK bit 0). If the launcher already left it on this changes nothing; on a regular DS it is skipped.
+    // All frame budgets are measured with the bus timers (33.5 MHz), which do not change, so the same budget simply does more work.
+#ifndef MC_NO_DSI_BOOST
+    if (isDSiMode()) *(volatile u16*)0x04004004 |= 1;
+#endif
     consoleDemoInit();
 
     Renderer renderer;
@@ -621,6 +626,16 @@ int main(void) {
 
         static WorldMetadata loadedMeta;
         hasSavedWorld = loadExisting && WorldSave::loadMetadata(loadedMeta, metaPath);
+
+        // Terrain generator: a new world uses the current one (or the original one with debug options -> oldterraingenerator); a saved world keeps
+        // the one it was made with (meta.dat written before this field existed reads it as 0 = original generator), so old worlds do not get seams
+        // between saved and newly generated chunks.
+        {
+            const int newWorldGen = Options::get().oldTerrainGenerator ? 0 : WorldConfig::CURRENT_TERRAIN_GEN;
+            int tg = loadExisting ? (hasSavedWorld ? loadedMeta.terrainGen : 0) : newWorldGen;
+            if (tg < 0 || tg > WorldConfig::CURRENT_TERRAIN_GEN) tg = 0;
+            WorldConfig::setTerrainGen(tg);
+        }
 
         unsigned int worldSeed;
         inventory = new Inventory();
@@ -2547,7 +2562,7 @@ Weather::load();
                 iprintf("XYZ %d %d %d\n", cx, (int)floorf(player->y - 1.62f + 1.5f), cz);
                 if (currentDimension == -1) iprintf("Overworld: %d %d\n", cx * 8, cz * 8);
                 else iprintf("Nether: %d %d\n", (int)floorf(player->x / 8.0f), (int)floorf(player->z / 8.0f));
-                iprintf("Seed %u", chunkManager->getSeed());   // la ultima linea, sin salto
+                iprintf("Seed %u  terrain gen %d", chunkManager->getSeed(), WorldConfig::terrainGen());   // la ultima linea, sin salto; gen 0 = original, 1 = sin mesetas
             }
         }
 
@@ -3251,6 +3266,7 @@ Weather::load();
             meta.playerPitch = player->pitch;
             meta.gameTimeTicks = gameTimeTicks;
             meta.spawnX = worldSpawnX; meta.spawnZ = worldSpawnZ; meta.spawnSet = worldSpawnSet ? 1 : 0;
+            meta.terrainGen = WorldConfig::terrainGen();
 
             for (int i = 0; i < Inventory::TOTAL_SIZE; i++) {
                 if (inventory->isSlotEmpty(i)) {
