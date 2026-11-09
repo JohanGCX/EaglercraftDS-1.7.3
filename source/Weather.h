@@ -17,6 +17,7 @@ namespace Weather {
     float rain(float partialTick);       // World.func_27162_g: 0 a 1
     float thunder(float partialTick);    // World.func_27166_f: 0 a 1 (ya multiplicado por la lluvia)
     void debugToggle();              // depuracion: tormenta con rayos al instante, o despejado si ya llovia
+    void clearAfterSleep();
     bool isRaining();                    // func_27161_C: lluvia > 0,2
     bool isThundering();                 // func_27160_B: tormenta > 0,9
     float flash(float partialTick);      // 0 a 1: destello del cielo cuando cae un rayo

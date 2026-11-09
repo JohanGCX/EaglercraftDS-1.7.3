@@ -19,6 +19,7 @@ public:
     static bool loadBoatAtlas();    // boat.png: el bote, 64 x 32
     static void unloadEntityTextures();   // libera la VRAM de las entidades mientras el menu muestra el panorama
     static void reloadEntityTextures();   // las vuelve a cargar (no hace nada si ya estan)
+    static void refreshEntityTextures();  // un texture pack cambio sus bitmaps: si estan en la VRAM, se suben otra vez (si no, ya se cargan de los nuevos)
     static bool loadAnimalAtlases(); // cow.png, pig.png y chicken.png: 64 x 32 cada una
     static bool loadHostileAtlases(); // zombie, skeleton, spider, spidereyes, creeper, pigzombie, ghast, ghastfire, slime, squid, wolf, wolfangry y wolftame: 64 x 32 cada una, con transparencia
     static bool loadPaintingAtlas();   // kz.png reducido (PaintingTex.h), 256 colores

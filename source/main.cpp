@@ -1,6 +1,7 @@
 #include <nds.h>
 #include <stdio.h>
 #include <fat.h>
+#include <filesystem.h>
 #include <math.h>
 #include "Renderer.h"
 #include "ChunkManager.h"
@@ -28,6 +29,10 @@
 #include "Clouds.h"
 #include "Particles.h"
 #include "Sound.h"
+#include "Music.h"
+#include "TexturePack.h"
+#include "TexturePackMenu.h"
+#include "Skins.h"
 #include "Trees.h"
 #include "Controls.h"
 #include "WorldConfig.h"
@@ -89,7 +94,8 @@ enum GameState {
     STATE_CREATE_WORLD,
     STATE_LOADING,
     STATE_PLAYING,
-    STATE_OPTIONS
+    STATE_OPTIONS,
+    STATE_TEXTUREPACKS
 };
 
 static void findLandChunkOffset(unsigned int seed, int& outChunkX, int& outChunkZ) {
@@ -483,7 +489,7 @@ int main(void) {
     bool autoJumpEnabled = true;
     int controlMode = 0;
     bool thirdPerson = false;     // camara en tercera persona (minibutton2), vista trasera de Beta 1.7.3
-    bool paused = false;          // menu de pausa abierto (el juego sigue corriendo, solo se bloquean los controles)
+    bool paused = false;          // menu de pausa abierto: el juego se detiene (GuiIngameMenu.doesGuiPauseGame); siguen la musica y la carga de chunks
     int pauseView = 0;            // 0 = cerrado, 1 = menu de pausa, 2 = opciones (consola)
     bool saveRequested = false;   // boton Save game del menu de pausa
     bool quitRequested = false;   // boton Quit to title del menu de pausa
@@ -520,6 +526,8 @@ int main(void) {
     } else {
         iprintf("libfat initialized\n");
     }
+    // NitroFS: archivos metidos dentro del .nds (carpeta nitrofiles/ del repo, por ahora la musica). Si falla, la musica solo se busca en la SD
+    if (!nitroFSInit(nullptr)) iprintf("NitroFS not available\n");
     Prof::init();
     WorldSave::ensureDirectoryStructure();
     Options::load();
@@ -554,7 +562,9 @@ int main(void) {
     SteveModel::init();
     TextureAnim::init(); // fuego y portal animados (el atlas del terreno ya está cargado)
     AnimItems::init();   // brujula y reloj animados (el atlas de items ya esta cargado)
+    TexturePack::boot();   // el texture pack elegido (terrain e items); si ya no esta o fallo, vuelve a Default
 
+    Skins::boot();   // la skin elegida se escribe sobre char.png antes de subirla; si ya no esta o fallo, vuelve a Default
     if (Texture::loadSkinAtlas()) {
         iprintf("Skin loaded OK\n");
     } else {
@@ -1183,11 +1193,21 @@ Weather::load();
         entropyCounter++;
 
         scanKeys();
+        if (state == STATE_PLAYING && player && chunkManager) {
+            Music::setListener(player->x, player->y, player->z, player->yaw);   // el disco de la jukebox suena desde su bloque
+            int rgx, rgy, rgz;
+            if (Music::recordCell(rgx, rgy, rgz)) {   // la jukebox desaparecio sin sacar el disco (TNT...): se calla, como BlockJukeBox.onBlockRemoval
+                const int rcx = rgx >= 0 ? rgx / WorldConfig::SIZE_X : -((-rgx + WorldConfig::SIZE_X - 1) / WorldConfig::SIZE_X);
+                const int rcz = rgz >= 0 ? rgz / WorldConfig::SIZE_Z : -((-rgz + WorldConfig::SIZE_Z - 1) / WorldConfig::SIZE_Z);
+                if (chunkManager->getChunkByChunkCoord(rcx, rcz) && Partial::jukeboxRecord(*chunkManager, rgx, rgy, rgz) == BlockType::AIR) Music::stopRecordAt(rgx, rgy, rgz);
+            }
+        }
+        Music::update(state == STATE_PLAYING);   // background music (streams from /mcdsefiles/music); stops by itself outside the game
         u32 keys_down = keysDown();
         u32 keys_held = keysHeld();
 
         // El panorama vive en el menú principal, en opciones y en la selección de mundo: en cualquier otro estado se libera (y el juego recupera su VRAM y su proyección)
-        if (state != STATE_MENU && state != STATE_OPTIONS && state != STATE_WORLD_SELECT && state != STATE_CREATE_WORLD) TopScreenMenu::suspend();
+        if (state != STATE_MENU && state != STATE_OPTIONS && state != STATE_TEXTUREPACKS && state != STATE_WORLD_SELECT && state != STATE_CREATE_WORLD) TopScreenMenu::suspend();
 
         if (state == STATE_MENU) {
             TopScreenMenu::tick();
@@ -1203,6 +1223,25 @@ Weather::load();
                 Sound::uiClick();
                 state = STATE_OPTIONS;
                 SettingsMenu::open();
+            } else if (menuTouching && SubScreenMenu::isTexturePacksTouched(menuTouch.px, menuTouch.py)) {
+                Sound::uiClick();
+                state = STATE_TEXTUREPACKS;
+                TexturePackMenu::open(false);
+            } else if (menuTouching && SubScreenMenu::isSkinsTouched(menuTouch.px, menuTouch.py)) {
+                Sound::uiClick();
+                state = STATE_TEXTUREPACKS;   // el mismo menu de lista, con las skins
+                TexturePackMenu::open(true);
+            }
+
+            swiWaitForVBlank();
+            continue;
+        }
+
+        if (state == STATE_TEXTUREPACKS) {
+            TopScreenMenu::tick();
+            if (TexturePackMenu::update(keys_down)) {
+                state = STATE_MENU;
+                SubScreenMenu::init(WorldSave::worldSlotExists(1));
             }
 
             swiWaitForVBlank();
@@ -1783,9 +1822,9 @@ Weather::load();
             touchJumpHeld = touching && inGroundArea;
         }
 
-        player->handleInput(Controls::gameHeld(keys_held), *chunkManager);
+        player->handleInput(paused ? 0 : Controls::gameHeld(keys_held), *chunkManager);   // en pausa la camara tampoco se mueve
 
-        float partialTick = frameCounter / 3.0f;
+        float partialTick = frameCounter / 3.0f;   // en pausa frameCounter no avanza: la interpolacion queda fija y la imagen quieta
 
         float bobX, bobY, bobRoll;
         player->getViewBob(partialTick, bobX, bobY, bobRoll);
@@ -2103,7 +2142,7 @@ Weather::load();
             } else if (hit.hit && hit.chunk->getBlockType(hit.blockXi, hit.blockYi, hit.blockZi) == BlockType::JUKEBOX &&
                        (Partial::jukeboxRecord(*chunkManager, hit.chunk->getChunkX() * WorldConfig::SIZE_X + hit.blockXi, hit.blockYi, hit.chunk->getChunkZ() * WorldConfig::SIZE_Z + hit.blockZi) != BlockType::AIR ||
                         (!inventory->isSlotEmpty(selectedSlot) && isRecord(inventory->getSlotType(selectedSlot))))) {
-                // ItemRecord.onItemUse / BlockJukeBox.blockActivated: con un disco en la mano lo mete; si ya tiene uno, lo saca (el sonido queda para la fase de sonido)
+                // ItemRecord.onItemUse / BlockJukeBox.blockActivated: con un disco en la mano lo mete; si ya tiene uno, lo saca (el disco suena con Music::playRecord)
                 const int jgx = hit.chunk->getChunkX() * WorldConfig::SIZE_X + hit.blockXi, jgz = hit.chunk->getChunkZ() * WorldConfig::SIZE_Z + hit.blockZi;
                 const BlockType inside = Partial::jukeboxEject(*chunkManager, jgx, hit.blockYi, jgz);
                 if (inside != BlockType::AIR) {
@@ -2340,11 +2379,13 @@ Weather::load();
         float lookDirX, lookDirY, lookDirZ;
         player->getLookDirection(lookDirX, lookDirY, lookDirZ);
 
-        frameCounter++;
+        // Pausa (Minecraft.isGamePaused): sin avanzar frameCounter nunca llega el tick de 20 Hz (mobs, tiempo, clima, liquidos, redstone,
+        // particulas, mano...) y la hora no corre. Se sigue dibujando la misma escena; al volver todo sigue donde quedo, sin ticks atrasados.
+        if (!paused) frameCounter++;
         renderFrameCounter++;
         bool shouldRender = (renderFrameCounter % 3) == 0;
 
-        gameTimeTicks = (gameTimeTicks + 1) % CYCLE_TICKS;
+        if (!paused) gameTimeTicks = (gameTimeTicks + 1) % CYCLE_TICKS;
         int skylightStep = computeSkylightSubtract(gameTimeTicks);
         if (skylightStep != lastSkylightStep) {
             lastSkylightStep = skylightStep;
@@ -2583,7 +2624,7 @@ Weather::load();
             }
             if (!skipWait) {
                 swiWaitForVBlank();
-                TextureAnim::onVBlank(); // al empezar el VBlank el 3D no dibuja: se puede escribir en la VRAM de texturas
+                if (!paused) TextureAnim::onVBlank(); // al empezar el VBlank el 3D no dibuja: se puede escribir en la VRAM de texturas (en pausa, fuego y portal quietos)
             }
         }
 
@@ -2625,6 +2666,7 @@ Weather::load();
                     } else {
                         gameTimeTicks = 0;                                         // setWorldTime(siguiente multiplo de 24000): amanece
                         wakeUp(false, true);                                       // wakeUpAllPlayers
+                        Weather::clearAfterSleep();                                // wakeUpAllPlayers -> clearWeather: se acaba la lluvia
                     }
                 }
             } else if (sleepTimer > 0) {
@@ -2748,7 +2790,7 @@ Weather::load();
                 env.inWater = player->wasInWater();
                 env.inLava = player->wasInLava();
                 env.headInWater = chunkManager->isInsideOfMaterial(px, eyeY, pz, false);
-                env.insideBlock = chunkManager->insideOpaqueBlock(px, eyeY, pz);
+                env.insideBlock = chunkManager->insideOpaqueBlock(px, eyeY, pz, sleeping ? 0.2f : 0.6f);   // sleepInBedAt: setSize(0.2, 0.2). Con la almohada contra una pared, el cuerpo de 0,6 asomaba 0,2 dentro del bloque y asfixiaba
                 env.burningBox = chunkManager->fireInBox(px - 0.299f, py - 1.619f, pz - 0.299f, px + 0.299f, py + 0.179f, pz + 0.299f)
                               || chunkManager->lavaInBox(px - 0.299f, py - 1.619f, pz - 0.299f, px + 0.299f, py + 0.179f, pz + 0.299f);
                 // el cactus de la Beta tiene la caja 1/16 más chica: se lo toca aunque se quede a unos centímetros
@@ -2929,7 +2971,12 @@ Weather::load();
                 hin.onGround = player->isOnGround();
                 hin.sneaking = player->isSneaking();
                 HandAnimations::tick(hin);
-                SteveModel::tick(player->yaw, player->getTickMoveX(), player->getTickMoveZ(), HandAnimations::getSwingProgress(1.0f), player->isSneaking());
+                {   // Montado (bote, vagoneta o cerdo) no camina: la Beta mueve al jinete con updateRiderPosition despues de onUpdate, asi que su
+                    // limbSwing no ve desplazamiento y brazos y piernas quedan quietos en la pose de sentado (ModelBiped.isRiding)
+                    const bool ridingNow = BoatManager::isRiding() || MinecartManager::isRiding() || AnimalManager::isRiding();
+                    SteveModel::tick(player->yaw, ridingNow ? 0.0f : player->getTickMoveX(), ridingNow ? 0.0f : player->getTickMoveZ(),
+                                     HandAnimations::getSwingProgress(1.0f), player->isSneaking());
+                }
             }
 
             Furnace::tickAll(*chunkManager);

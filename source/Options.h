@@ -22,6 +22,9 @@ namespace Options {
         bool inventoryMap;         // el jugador siempre lleva un mapa en la casilla 9 de la barra (como la Legacy Edition)
         bool oldMobSpawnLimit;     // debug: los limites de mobs de antes (el doble de mobs); false = la mitad (por defecto)
         bool oldTerrainGenerator;  // debug: los mundos NUEVOS usan el generador de terreno original (version 0); los guardados conservan el suyo
+        unsigned char musicVolume; // 0..5 = 25%, 50%, 75%, 100%, 150%, 200% (default 3). Above 100% the samples are amplified in software
+        unsigned char musicWait;   // espera antes de cada pista: 0 = fast (5-15 s), 1 = normal (5-10 min), 2 = long (10-20 min, como la Beta). Por defecto 1
+        bool music;                // musica de fondo (Music.cpp, /mcdsefiles/music/*.mus): on / off. Al final de la struct: el inicializador de Options.cpp es posicional
     };
 
     Data& get();

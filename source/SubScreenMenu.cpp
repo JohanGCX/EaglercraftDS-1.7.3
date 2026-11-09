@@ -21,6 +21,14 @@ bool SubScreenMenu::isNewLoadTouched(int touchX, int touchY) {
     return touchX >= 51 && touchX <= 204 && touchY >= 38 && touchY <= 63;
 }
 
+bool SubScreenMenu::isSkinsTouched(int touchX, int touchY) {
+    return touchX >= 51 && touchX <= 204 && touchY >= 68 && touchY <= 93;
+}
+
+bool SubScreenMenu::isTexturePacksTouched(int touchX, int touchY) {
+    return touchX >= 51 && touchX <= 204 && touchY >= 98 && touchY <= 123;
+}
+
 bool SubScreenMenu::isOptionsTouched(int touchX, int touchY) {
     return touchX >= 51 && touchX <= 204 && touchY >= 128 && touchY <= 153;
 }

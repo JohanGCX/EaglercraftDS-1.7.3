@@ -8,7 +8,7 @@ A from-scratch port of Minecraft Beta 1.7.3 to the Nintendo DS, written in C++ w
 ![Platform](https://img.shields.io/badge/platform-Nintendo%20DS%20%2F%20DSi-red)
 ![Toolchain](https://img.shields.io/badge/toolchain-devkitARM%20%2B%20libnds-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-release%20candidate-orange)
+![Status](https://img.shields.io/badge/version-1.0-brightgreen)
 
 </div>
 
@@ -28,7 +28,7 @@ Java code could be consulted (via the decompiled Eaglercraft sources), the logic
 and wherever the DS could not keep up, the deviation is deliberate and documented in
 [Known differences](#known-differences-from-beta-173).
 
-> **Status:** release candidate. The game is feature-complete for what the hardware can carry and has been tested on
+> **Status:** 1.0. The game is feature-complete for what the hardware can carry and has been tested on
 > emulators and real hardware. Bug reports are very welcome.
 
 ## Features
@@ -58,6 +58,7 @@ and wherever the DS could not keep up, the deviation is deliberate and documente
 - Two control profiles (**normal**, with touch-screen camera, and **xyba**, with button camera) and fully rebindable buttons
 - Three chunk modes — **fast**, **ds** and **dsi** — to trade view distance for speed (see [Performance](#performance))
 - World selection, multiple save slots, custom seeds, and settings that persist on the SD card
+- Beta texture packs: drop the pack's `.zip` in `/mcdsefiles/texturepacks/` and pick it from the main menu
 - Built-in profiler and debug screen for developers (off by default)
 
 ## Requirements
@@ -86,7 +87,8 @@ The project uses the standard devkitPro NDS Makefile layout.
 EaglercraftDS-1.7.3/
 ├── source/       C++ sources and headers
 ├── graphics/     PNG textures and grit conversion settings
-├── tools/        Build helpers (alphakey)
+├── tools/        Build helpers (alphakey, mkmusic.py, mkicon.py)
+├── icon.bmp      Game icon shown in Twilight Menu++ / flashcart menus
 ├── Makefile
 ├── LICENSE
 └── README.md
@@ -135,7 +137,10 @@ The only helper tool is `tools/alphakey`, whose source (`tools/alphakey.c`, usin
    /mcdsefiles/
    ├── options.dat           Settings
    ├── controlsprofile.dat   Button bindings
-   ├── skins/                Player skins
+   ├── skins/                Player skins (.png)
+   ├── skinscache/           Converted skins
+   ├── texturepacks/         Texture packs (.zip or folder)
+   ├── cache/                Converted texture packs
    └── worlds/world1, …      Saved worlds
    ```
 
@@ -177,6 +182,28 @@ Open the pause menu and choose **Options** (also available from the title screen
 | inventoryMap | New worlds start with a map in the last hotbar slot |
 | debug options | Developer tools: debug chests, `spikes.txt` log, debug screen contents and shortcuts, `oldmobspawnlimit` (the old, higher mob limits) and `oldterraingenerator` (new worlds use the original terrain generator) |
 
+## Texture packs
+
+Beta 1.7.3 texture packs work as they did on PC: copy the pack's `.zip` (no need to extract it) to `/mcdsefiles/texturepacks/` and choose it with the **Texture Packs** button of the main menu. An extracted folder works too.
+
+- A pack is listed only if it has `pack.txt`, `terrain.png` and `gui/items.png`. The name shown is the first line of `pack.txt`
+- Used from the pack: blocks and items (`terrain.png`, `gui/items.png`), grass and leaf colours (`misc/`), the health and armor icons (`gui/icons.png`), the mobs and animals (`mob/`), and the minecart, boat and sign (`item/`). Anything the pack does not include keeps the default texture; the menus, skins, paintings, sun and moon are not replaced
+- The first time a pack is chosen the console converts it to 256 colours, which takes a few seconds; the result is kept in `/mcdsefiles/cache/`, so later loads are instant
+- 16x packs are used as they are; 32x and 64x packs are reduced to 16x
+- If the chosen pack is removed or cannot be loaded, the game goes back to the default textures by itself
+
+## Skins
+
+Copy a skin `.png` to `/mcdsefiles/skins/` and choose it with the **Skins** button of the main menu. Both the classic Beta skin (64 × 32) and the modern one (64 × 64) work, as well as HD versions (they are reduced). The player model uses the classic layout, so of a modern skin only the top half is used (no hat layer or separate left arm and leg).
+As with texture packs, the first use converts the skin (kept in `/mcdsefiles/skinscache/`), and if the chosen skin is removed the game goes back to Steve.
+
+## Music
+
+The Beta music (calm, hal, nuance, piano) plays in game, with Beta's timing (a pause before each track, chosen in *Options → sound & music → music wait*: `fast` 5-15 seconds, `normal` 5-10 minutes (default), `long` 10-20 minutes like the Beta).
+The tracks are built into the `.nds` (NitroFS, from `nitrofiles/music/` in the repository), so nothing has to be copied to the SD card. A `.mus` file with the same name in `/mcdsefiles/music/` on the SD card replaces the built-in track.
+Convert `.ogg` files with `python3 tools/mkmusic.py <folder with oggs> -o <output folder>` (needs ffmpeg). All sound settings are in *Options → sound & music*: sound effects on/off, music on/off, music volume (25% to 200%) and music wait.
+For testing, set *music wait* to `fast`: the first track starts 5 to 15 seconds after entering a world.
+
 ## Performance
 
 The DS has very little memory and processing power, so the engine is built around a few ideas:
@@ -200,7 +227,7 @@ This is a port to very limited hardware, so some things are intentionally differ
 - Overworld terrain is a 2D height field (normalized fBm noise) instead of Beta's 3D density field. Worlds created before this generator keep the original one
   (version 0), and *Options → debug options → oldterraingenerator* creates new worlds with it too
 - Animals and hostile mobs are not saved with the world, to save space on the SD card. Tamed wolves are saved
-- No background music (disabled for performance). Sound effects are a reduced set
+- Background music is streamed at 8 kHz mono (see [Music](#music)). Sound effects are a reduced set
 - No stars or sunrise/sunset glow in the sky. The sun and moon are shown only in `ds` and `dsi` chunk modes, at a shorter distance
 - Leaves do not block light; only water and ice do
 - The map is carried in the hotbar (as on the Legacy console editions) instead of being shown on the lower screen
@@ -229,7 +256,8 @@ This project would not exist without:
 - **[JohanGCX](https://github.com/JohanGCX)**: project lead; guided the vision and direction of the development and designed and implemented the menus
   exclusive to this port
 - **[figuidos](https://www.youtube.com/@figuidos)**: community contributor; chunk lookup and ITCM optimizations, DSi terrain caches and clock boost, the
-  normalized terrain generator, plus testing and bug reports
+  normalized terrain generator, the background music streaming, the sound & music menu, the game icon and the sleeping suffocation fix,
+  plus testing and bug reports
 - **[PeytonPlayz595](https://github.com/PeytonPlayz595)**: the decompilation of Minecraft Beta 1.7.3
   ([Eaglercraft Beta 1.7.3](https://github.com/PeytonPlayz595/Beta-1.7.3)), the reference for the game logic
 - **The community and fans**, who proposed ideas, reported bugs and gave feedback during development through itch.io and YouTube

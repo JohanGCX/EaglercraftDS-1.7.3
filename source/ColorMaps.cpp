@@ -1,5 +1,11 @@
 #include "ColorMaps.h"
 #include "ColorMapData.h"
+#include <stdlib.h>
+#include <string.h>
+
+static const unsigned char* s_grass = GRASS_TABLE;
+static const unsigned char* s_foliage = FOLIAGE_TABLE;
+static unsigned char* s_custom = nullptr;   // las dos tablas de un texture pack (solo existe con un pack que las trae)
 
 // ColorizerGrass.getGrassColor: humedad *= temperatura; x = (1 - temperatura) * 255; y = (1 - humedad) * 255
 static void lookup(const unsigned char* table, float temperature, float humidity, u8& r, u8& g, u8& b) {
@@ -28,9 +34,30 @@ static void lookup(const unsigned char* table, float temperature, float humidity
 }
 
 void ColorMaps::grass(float temperature, float humidity, u8& r, u8& g, u8& b) {
-    lookup(GRASS_TABLE, temperature, humidity, r, g, b);
+    lookup(s_grass, temperature, humidity, r, g, b);
 }
 
 void ColorMaps::foliage(float temperature, float humidity, u8& r, u8& g, u8& b) {
-    lookup(FOLIAGE_TABLE, temperature, humidity, r, g, b);
+    lookup(s_foliage, temperature, humidity, r, g, b);
 }
+
+void ColorMaps::useDefault() {
+    s_grass = GRASS_TABLE;
+    s_foliage = FOLIAGE_TABLE;
+    free(s_custom);
+    s_custom = nullptr;
+}
+
+bool ColorMaps::setCustom(const u8* grassTable, const u8* foliageTable) {
+    if (!grassTable && !foliageTable) { useDefault(); return true; }
+    if (!s_custom) s_custom = (unsigned char*)malloc(2 * TABLE_BYTES);
+    if (!s_custom) { useDefault(); return false; }
+    memcpy(s_custom, grassTable ? grassTable : GRASS_TABLE, TABLE_BYTES);
+    memcpy(s_custom + TABLE_BYTES, foliageTable ? foliageTable : FOLIAGE_TABLE, TABLE_BYTES);
+    s_grass = s_custom;
+    s_foliage = s_custom + TABLE_BYTES;
+    return true;
+}
+
+const u8* ColorMaps::grassTable() { return s_grass; }
+const u8* ColorMaps::foliageTable() { return s_foliage; }

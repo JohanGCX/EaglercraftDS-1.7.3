@@ -312,6 +312,12 @@ void Texture::unloadEntityTextures() {
     s_entityUnloaded = true;
 }
 
+void Texture::refreshEntityTextures() {
+    if (s_entityUnloaded || sheepTextureID == 0) return;   // sueltas (menu) o todavia no cargadas: al cargarse leen los bitmaps nuevos
+    unloadEntityTextures();
+    reloadEntityTextures();
+}
+
 void Texture::reloadEntityTextures() {
     if (!s_entityUnloaded) return;
     s_entityUnloaded = false;

@@ -20,6 +20,8 @@ SOURCES		:=	source
 GRAPHICS	:=	graphics
 INCLUDES	:=	include
 DATA		:=	data
+# NITRO: carpeta que ndstool mete dentro del .nds como sistema de archivos (NitroFS, se lee como nitro:/...). Ahi va la musica: nitrofiles/music/*.mus
+NITRO		:=	nitrofiles
 
 #---------------------------------------------------------------------------------
 # opciones para el código
@@ -74,6 +76,18 @@ $(ALPHAKEY): | tools/alphakey.c
 .DEFAULT_GOAL := $(BUILD)
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
+
+# ds_rules le pasa NITRO_FILES a ndstool (-d): todo lo que hay en nitrofiles/ queda dentro del .nds
+ifneq ($(strip $(NITRO)),)
+export NITRO_FILES	:=	$(CURDIR)/$(NITRO)
+endif
+
+# Banner del .nds (lo que muestran Twilight Menu++ y el menu del flashcart): icono 32x32 de 16 colores (se genera con tools/mkicon.py) y los tres textos.
+# ndstool los recibe de ds_rules como GAME_ICON y GAME_TITLE / GAME_SUBTITLE1 / GAME_SUBTITLE2.
+export GAME_ICON		:=	$(CURDIR)/icon.bmp
+export GAME_TITLE		:=	Minecraft DS
+export GAME_SUBTITLE1	:=	Eaglercraft Beta 1.7.3
+export GAME_SUBTITLE2	:=	Nintendo DS Edition
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir)) \
@@ -141,7 +155,7 @@ $(OFILES) : $(HFILES)
 # La memoria principal de la DS (4 MB) esta al limite: el codigo que no corre en el bucle caliente (menus, pantallas, redstone, guardado) va en -Os (mas chico)
 SMALL_OFILES := CraftingScreen.o InventoryScreen.o MenuFont.o TextKeyboard.o NewWorldMenu.o Options.o PauseScreen.o SettingsMenu.o SubScreenMenu.o TopScreenMenu.o \
                 WorldSelectMenu.o GameOverScreen.o MenuPanorama.o SignManager.o WorldSave.o Profiler.o Governor.o Furnace.o ChestStore.o Redstone.o Pistons.o \
-                NoteBlocks.o TntManager.o Dispenser.o Projectiles.o MinecartManager.o BoatManager.o PaintingManager.o PartialBlocks.o
+                NoteBlocks.o TntManager.o Dispenser.o Projectiles.o MinecartManager.o BoatManager.o PaintingManager.o PartialBlocks.o Music.o TexturePack.o TexturePackMenu.o Skins.o
 $(SMALL_OFILES) : CXXFLAGS += -Os
 
 #ARM_OFILES := PerlinNoise.o Noise.o Caves.o ColorMaps.o

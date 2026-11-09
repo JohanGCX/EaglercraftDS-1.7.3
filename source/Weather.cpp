@@ -162,6 +162,13 @@ void Weather::save() {
     fclose(f);
 }
 
+// World.wakeUpAllPlayers -> func_27163_E (clearWeather): al amanecer tras dormir se acaba la lluvia y la tormenta. La intensidad baja sola
+// (0,01 por tick, como siempre) y los contadores en 0 hacen que el proximo tick sortee cuanto dura el buen tiempo.
+void Weather::clearAfterSleep() {
+    s_raining = s_thundering = false;
+    s_rainTime = s_thunderTime = 0;
+}
+
 void Weather::debugToggle() {
     const bool on = !(s_raining || s_rain > 0.05f);
     s_raining = s_thundering = on;

@@ -51,7 +51,7 @@ static void printOption(int row) {
         case 8: printRow(sel, "clockcompassinvupdate", Options::get().clockCompassInvUpdate ? "true" : "false"); break;
         case 9: printRow(sel, "debug options", ">"); break;
         case 10: printRow(sel, "particles", Options::get().particles ? "on" : "off"); break;
-        case 11: printRow(sel, "sound", Options::get().sound ? "on" : "off"); break;
+        case 11: printRow(sel, "sound & music", ">"); break;
         case 12: printRow(sel, "inventoryMap", Options::get().inventoryMap ? "true" : "false"); break;
     }
 }
@@ -69,7 +69,7 @@ static void draw() {
 }
 
 // ---- Submenu "controls": modo (perfil), reset del perfil y un boton por accion ----
-static int s_view = 0;              // 0 = lista de opciones, 1 = submenu de controles, 2 = submenu debug options
+static int s_view = 0;              // 0 = lista de opciones, 1 = submenu de controles, 2 = submenu debug options, 3 = submenu sound & music
 static int cSel = 0, cTop = 0;
 static bool cListening = false;     // esperando el boton nuevo de la accion elegida
 static const int C_ROWS = 3 + Controls::COUNT;   // 0 back, 1 controls mode, 2 reset profile, 3.. acciones
@@ -192,6 +192,57 @@ static bool updateDebug(u32 keysDown) {
     return false;
 }
 
+// ---- Submenu "sound & music": efectos, musica, volumen de la musica y espera entre pistas ----
+static int sSel = 0;
+static const int SND_ROWS = 5;   // 0 back, 1 sound effects, 2 music, 3 music volume, 4 music wait
+
+static void drawSound() {
+    static const char* const VOL_NAMES[6] = { "25%", "50%", "75%", "100%", "150%", "200%" };
+    static const char* const WAIT_NAMES[3] = { "fast", "normal", "long" };
+    const Options::Data& o = Options::get();
+    consoleClear();
+    iprintf("Sound & music\n\n");
+    for (int r = 0; r < SND_ROWS; r++) {
+        const bool sel = sSel == r;
+        switch (r) {
+            case 0: printRow(sel, "", "back"); break;
+            case 1: printRow(sel, "sound effects", o.sound ? "on" : "off"); break;
+            case 2: printRow(sel, "music", o.music ? "on" : "off"); break;
+            case 3: printRow(sel, "music volume", VOL_NAMES[o.musicVolume <= 5 ? o.musicVolume : 3]); break;
+            case 4: printRow(sel, "music wait", WAIT_NAMES[o.musicWait <= 2 ? o.musicWait : 1]); break;
+        }
+    }
+    iprintf("\n");
+    if (sSel == 1) iprintf("steps, mobs, rain, clicks...\n(off also silences the music)\n");
+    else if (sSel == 2) iprintf("Beta background music\n(calm, hal, nuance, piano)\n");
+    else if (sSel == 3) iprintf("above 100%% the sound is boosted\n(loud tracks may distort)\n");
+    else if (sSel == 4) iprintf("pause before each track:\nfast: 5-15 s\nnormal: 5-10 min\nlong: 10-20 min (Beta)\n");
+}
+
+static void openSound() { s_view = 3; sSel = 0; drawSound(); }
+
+// true = volver a la lista de opciones
+static bool updateSound(u32 keysDown) {
+    if (keysDown & KEY_B) return true;
+    if (keysDown & KEY_UP)   { sSel = (sSel + SND_ROWS - 1) % SND_ROWS; drawSound(); }
+    if (keysDown & KEY_DOWN) { sSel = (sSel + 1) % SND_ROWS; drawSound(); }
+    if (keysDown & (KEY_A | KEY_LEFT | KEY_RIGHT)) {
+        Options::Data& o = Options::get();
+        if (sSel == 0) {
+            if (keysDown & KEY_A) return true;
+        } else {
+            const int dir = (keysDown & KEY_LEFT) ? -1 : 1;   // LEFT goes back, RIGHT and A go forward (wrapping)
+            if (sSel == 1) o.sound = !o.sound;
+            else if (sSel == 2) o.music = !o.music;
+            else if (sSel == 3) { int v = o.musicVolume > 5 ? 3 : o.musicVolume; o.musicVolume = (unsigned char)((v + 6 + dir) % 6); }
+            else { int w = o.musicWait > 2 ? 1 : o.musicWait; o.musicWait = (unsigned char)((w + 3 + dir) % 3); }
+            Options::save();
+            drawSound();
+        }
+    }
+    return false;
+}
+
 void SettingsMenu::open() {
     s_selected = 0;
     s_top = 0;
@@ -210,6 +261,10 @@ bool SettingsMenu::update(u32 keysDown) {
     }
     if (s_view == 2) {
         if (updateDebug(keysDown)) { s_view = 0; consoleDemoInit(); draw(); }
+        return false;
+    }
+    if (s_view == 3) {
+        if (updateSound(keysDown)) { s_view = 0; consoleDemoInit(); draw(); }
         return false;
     }
     if (keysDown & KEY_B) return true;
@@ -247,9 +302,8 @@ bool SettingsMenu::update(u32 keysDown) {
             Options::save();
             draw();
         } else if (s_selected == 11) {
-            Options::get().sound = !Options::get().sound;
-            Options::save();
-            draw();
+            consoleDemoInit();
+            openSound();   // submenu sound & music
         } else if (s_selected == 8) {
             Options::get().clockCompassInvUpdate = !Options::get().clockCompassInvUpdate;
             Options::save();

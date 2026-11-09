@@ -81,7 +81,7 @@ public:
     bool fireInBox(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) const;      // World.isBoundingBoxBurning (fuego)    // Entity.doBlockCollisions: ¿toca un portal?
     bool typeInBox(BlockType t, float minX, float minY, float minZ, float maxX, float maxY, float maxZ) const; // ¿hay algún bloque de ese tipo en la caja?
     bool isInsideOfMaterial(float worldX, float testWorldY, float worldZ, bool lava) const;   // Entity.isInsideOfMaterial (agua o lava), con la altura de la superficie
-    bool insideOpaqueBlock(float worldX, float testWorldY, float worldZ) const;                // Entity.isEntityInsideOpaqueBlock (jugador de 0,6 de ancho)
+    bool insideOpaqueBlock(float worldX, float testWorldY, float worldZ, float width = 0.6f) const;   // Entity.isEntityInsideOpaqueBlock (jugador de 0,6 de ancho; tendido en la cama, 0,2 como setSize(0.2, 0.2) de sleepInBedAt)
 
 private:
     Chunk* chunks[CAP_CHUNKS];

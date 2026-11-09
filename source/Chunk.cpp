@@ -1450,15 +1450,15 @@ static void drawCrossQuad(TextureCell cell, u8 tintR, u8 tintG, u8 tintB) {
     glColor3b(tintR, tintG, tintB);
 
     glBegin(GL_QUADS);
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v1)); glVertex3v16(floattov16(-0.5f), floattov16(-0.5f), floattov16(-0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v1)); glVertex3v16(floattov16( 0.5f), floattov16(-0.5f), floattov16( 0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v0)); glVertex3v16(floattov16( 0.5f), floattov16( 0.5f), floattov16( 0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v0)); glVertex3v16(floattov16(-0.5f), floattov16( 0.5f), floattov16(-0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1)); glVertex3v16(floattov16(-0.5f), floattov16(-0.5f), floattov16(-0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1)); glVertex3v16(floattov16( 0.5f), floattov16(-0.5f), floattov16( 0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0)); glVertex3v16(floattov16( 0.5f), floattov16( 0.5f), floattov16( 0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0)); glVertex3v16(floattov16(-0.5f), floattov16( 0.5f), floattov16(-0.5f));
 
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v1)); glVertex3v16(floattov16(-0.5f), floattov16(-0.5f), floattov16( 0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v1)); glVertex3v16(floattov16( 0.5f), floattov16(-0.5f), floattov16(-0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v0)); glVertex3v16(floattov16( 0.5f), floattov16( 0.5f), floattov16(-0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v0)); glVertex3v16(floattov16(-0.5f), floattov16( 0.5f), floattov16( 0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1)); glVertex3v16(floattov16(-0.5f), floattov16(-0.5f), floattov16( 0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1)); glVertex3v16(floattov16( 0.5f), floattov16(-0.5f), floattov16(-0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0)); glVertex3v16(floattov16( 0.5f), floattov16( 0.5f), floattov16(-0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0)); glVertex3v16(floattov16(-0.5f), floattov16( 0.5f), floattov16( 0.5f));
     glEnd();
 }
 
@@ -1469,15 +1469,15 @@ static void drawCenteredCrossQuad(TextureCell cell, u8 tintR, u8 tintG, u8 tintB
     glColor3b(tintR, tintG, tintB);
 
     glBegin(GL_QUADS);
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v1)); glVertex3v16(floattov16(-0.5f), floattov16(-0.5f), floattov16(0));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v1)); glVertex3v16(floattov16( 0.5f), floattov16(-0.5f), floattov16(0));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v0)); glVertex3v16(floattov16( 0.5f), floattov16( 0.5f), floattov16(0));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v0)); glVertex3v16(floattov16(-0.5f), floattov16( 0.5f), floattov16(0));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1)); glVertex3v16(floattov16(-0.5f), floattov16(-0.5f), floattov16(0));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1)); glVertex3v16(floattov16( 0.5f), floattov16(-0.5f), floattov16(0));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0)); glVertex3v16(floattov16( 0.5f), floattov16( 0.5f), floattov16(0));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0)); glVertex3v16(floattov16(-0.5f), floattov16( 0.5f), floattov16(0));
 
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v1)); glVertex3v16(floattov16(0), floattov16(-0.5f), floattov16(-0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v1)); glVertex3v16(floattov16(0), floattov16(-0.5f), floattov16( 0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v0)); glVertex3v16(floattov16(0), floattov16( 0.5f), floattov16( 0.5f));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v0)); glVertex3v16(floattov16(0), floattov16( 0.5f), floattov16(-0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1)); glVertex3v16(floattov16(0), floattov16(-0.5f), floattov16(-0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1)); glVertex3v16(floattov16(0), floattov16(-0.5f), floattov16( 0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0)); glVertex3v16(floattov16(0), floattov16( 0.5f), floattov16( 0.5f));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0)); glVertex3v16(floattov16(0), floattov16( 0.5f), floattov16(-0.5f));
     glEnd();
 }
 
@@ -1495,10 +1495,10 @@ static void drawLodTopQuad(TextureCell cell, u8 tintR, u8 tintG, u8 tintB, float
 
     glBegin(GL_QUADS);
         glColor3b(tintR, tintG, tintB);
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v1)); glVertex3v16(floattov16(-h), floattov16(0.5f), floattov16( h));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v1)); glVertex3v16(floattov16( h), floattov16(0.5f), floattov16( h));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v0)); glVertex3v16(floattov16( h), floattov16(0.5f), floattov16(-h));
-        GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v0)); glVertex3v16(floattov16(-h), floattov16(0.5f), floattov16(-h));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1)); glVertex3v16(floattov16(-h), floattov16(0.5f), floattov16( h));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1)); glVertex3v16(floattov16( h), floattov16(0.5f), floattov16( h));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0)); glVertex3v16(floattov16( h), floattov16(0.5f), floattov16(-h));
+        GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0)); glVertex3v16(floattov16(-h), floattov16(0.5f), floattov16(-h));
     glEnd();
 }
 
@@ -1506,10 +1506,10 @@ static u32 packTexCoordCell(TextureCell cell, int corner) {
     int u0 = cell.col * 16, v0 = cell.row * 16;
     int u1 = u0 + 16, v1 = v0 + 16;
     switch (corner) {
-        case 0: return TEXTURE_PACK(inttot16(u0), inttot16(v1));
-        case 1: return TEXTURE_PACK(inttot16(u1), inttot16(v1));
-        case 2: return TEXTURE_PACK(inttot16(u1), inttot16(v0));
-        default: return TEXTURE_PACK(inttot16(u0), inttot16(v0));
+        case 0: return TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1));
+        case 1: return TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1));
+        case 2: return TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0));
+        default: return TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0));
     }
 }
 
@@ -1557,10 +1557,10 @@ bool Chunk::buildLodList(bool coarse) {
             b.mtxTrans((int)(lx * 4096.0f), (int)(gridToWorldY(colMaxY) * 4096.0f), (int)(lz * 4096.0f));
             b.begin(GL_QUADS);
             b.color3b(tr, tg, tb);
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(-h, top,  h);
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex( h, top,  h);
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex( h, top, -h);
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(-h, top, -h);
+            b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(-h, top,  h);
+            b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex( h, top,  h);
+            b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex( h, top, -h);
+            b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(-h, top, -h);
             b.end();
             b.mtxPop(1);
         }
@@ -1732,30 +1732,30 @@ static void emitSnowLayer(DisplayListBuilder& b, float lx, float ly, float lz,
     b.begin(GL_QUADS);
     b.color3b(r, g, bl);
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz-0.5f));
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz+0.5f));
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz-0.5f));
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+topY), V(lz-0.5f));
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+topY), V(lz+0.5f));
 
     b.end();
 }
@@ -1862,15 +1862,15 @@ static void emitCrossQuad(DisplayListBuilder& b, float lx, float ly, float lz,
     b.begin(GL_QUADS);
     b.color3b(r, g, bl);
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+0.5f), V(lz-0.5f));
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+0.5f), V(lz+0.5f));
     b.end();
 }
 
@@ -1884,15 +1884,15 @@ static void emitCenteredCrossQuad(DisplayListBuilder& b, float lx, float ly, flo
     b.begin(GL_QUADS);
     b.color3b(r, g, bl);
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx+0.5f), V(ly+0.5f), V(lz));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx-0.5f), V(ly+0.5f), V(lz));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx-0.5f), V(ly-0.5f), V(lz));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx+0.5f), V(ly-0.5f), V(lz));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx+0.5f), V(ly+0.5f), V(lz));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx-0.5f), V(ly+0.5f), V(lz));
 
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(lx), V(ly-0.5f), V(lz-0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(lx), V(ly-0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(lx), V(ly+0.5f), V(lz+0.5f));
-    b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(lx), V(ly+0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(lx), V(ly-0.5f), V(lz-0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(lx), V(ly-0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(lx), V(ly+0.5f), V(lz+0.5f));
+    b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(lx), V(ly+0.5f), V(lz-0.5f));
     b.end();
 }
 
@@ -1910,7 +1910,7 @@ static void emitTorch(DisplayListBuilder& b, float lx, float ly, float lz, int m
         // del bloque de apoyo (oculta) se recorta en vez de dar la vuelta
         if (px > 7.98f) px = 7.98f;
         if (pz > 7.98f) pz = 7.98f;
-        b.texCoordPacked(TEXTURE_PACK(floattot16((float)(cell.col * 16) + v[i].u), floattot16((float)(cell.row * 16) + v[i].v)));
+        b.texCoordPacked(TEXTURE_PACK(TexUV::clampIn((float)(cell.col * 16) + v[i].u, cell.col * 16), TexUV::clampIn((float)(cell.row * 16) + v[i].v, cell.row * 16)));
         b.vertex(V(px), V(py), V(pz));
     }
     b.end();
@@ -2037,7 +2037,7 @@ void Chunk::emitLiquidCell(DisplayListBuilder& b, int xi, int yi, int zi, float 
 
     auto color = [&](u8 raw) { u8 r, g, bl; applyLight(raw, 255, 255, 255, r, g, bl); b.color3b(r, g, bl); };
     auto vtx = [&](float px, float py, float pz, float u, float v) {
-        b.texCoordPacked(TEXTURE_PACK(floattot16(u), floattot16(v)));
+        b.texCoordPacked(TEXTURE_PACK(TexUV::clampIn(u, (int)u0), TexUV::clampIn(v, (int)v0)));   // inside the cell (TexUV)
         b.vertex(V(px), V(py), V(pz));
     };
 
@@ -2121,7 +2121,7 @@ void Chunk::emitPortalCell(DisplayListBuilder& b, int xi, int yi, int zi, float 
     auto vtx = [&](float px, float py, float pz, float u, float v) {
         if (px > 7.98f) px = 7.98f; // VERTEX10 llega hasta +7,98
         if (pz > 7.98f) pz = 7.98f;
-        b.texCoordPacked(TEXTURE_PACK(floattot16(u), floattot16(v)));
+        b.texCoordPacked(TEXTURE_PACK(TexUV::clampIn(u, (int)u0), TexUV::clampIn(v, (int)v0)));   // inside the cell (TexUV)
         b.vertex(V(px), V(py), V(pz));
     };
 
@@ -2159,7 +2159,7 @@ static void emitPartialBox(DisplayListBuilder& b, float lx, float ly, float lz, 
     const float z0 = lz - 0.5f + bd[2], z1 = lz - 0.5f + bd[5];
     auto uv = [&](int f, float uf, float vf) -> u32 {
         if (flip[f]) uf = 1.0f - uf;
-        return TEXTURE_PACK(floattot16((float)(cells[f].col * 16) + uf * 16.0f), floattot16((float)(cells[f].row * 16) + vf * 16.0f));
+        return TEXTURE_PACK(TexUV::clampIn((float)(cells[f].col * 16) + uf * 16.0f, cells[f].col * 16), TexUV::clampIn((float)(cells[f].row * 16) + vf * 16.0f, cells[f].row * 16));
     };
     b.begin(GL_QUADS);
     b.color3b(r, g, bl);
@@ -2219,7 +2219,7 @@ static void emitYawBox(DisplayListBuilder& b, float lx, float ly, float lz, cons
     const float yb = ly - 0.5f;
     auto P = [&](float x, float y, float z, float uf, float vf, float wF, float hF) {
         const float rx = x * cs + z * sn, rz = -x * sn + z * cs;
-        b.texCoordPacked(TEXTURE_PACK(floattot16((float)(cell.col * 16) + uf * wF * 16.0f), floattot16((float)(cell.row * 16) + vf * hF * 16.0f)));
+        b.texCoordPacked(TEXTURE_PACK(TexUV::clampIn((float)(cell.col * 16) + uf * wF * 16.0f, cell.col * 16), TexUV::clampIn((float)(cell.row * 16) + vf * hF * 16.0f, cell.row * 16)));
         b.vertex(V(lx + rx), V(yb + y), V(lz + rz));
     };
     const float x0 = bx[0], y0 = bx[1], z0 = bx[2], x1 = bx[3], y1 = bx[4], z1 = bx[5];
@@ -2524,10 +2524,10 @@ void Chunk::emitPartialCell(DisplayListBuilder& b, int xi, int yi, int zi, float
             const float off = (p & 1) ? 0.25f : -0.25f;
             const float xa = alongZ ? lx + off : lx - 0.5f, xb = alongZ ? lx + off : lx + 0.5f;
             const float za = alongZ ? lz - 0.5f : lz + off, zb = alongZ ? lz + 0.5f : lz + off;
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v1))); b.vertex(V(xa), V(yb), V(za));
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v1))); b.vertex(V(xb), V(yb), V(zb));
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u1), inttot16(v0))); b.vertex(V(xb), V(yt), V(zb));
-            b.texCoordPacked(TEXTURE_PACK(inttot16(u0), inttot16(v0))); b.vertex(V(xa), V(yt), V(za));
+            b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1))); b.vertex(V(xa), V(yb), V(za));
+            b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1))); b.vertex(V(xb), V(yb), V(zb));
+            b.texCoordPacked(TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0))); b.vertex(V(xb), V(yt), V(zb));
+            b.texCoordPacked(TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0))); b.vertex(V(xa), V(yt), V(za));
         }
         b.end();
         b.polyFormat(POLYFMT_CULLED);
@@ -2596,7 +2596,7 @@ void Chunk::emitPartialCell(DisplayListBuilder& b, int xi, int yi, int zi, float
             b.color3b(lr, lg, lb);
             const float uu[4] = { u0, u1, u1, u0 }, vv[4] = { v1, v1, v0, v0 };
             for (int i = 0; i < 4; i++) {
-                b.texCoordPacked(TEXTURE_PACK(floattot16(uu[i]), floattot16(vv[i])));
+                b.texCoordPacked(TEXTURE_PACK(TexUV::clampIn(uu[i], (int)u0), TexUV::clampIn(vv[i], (int)v0)));
                 b.vertex(V(p[i][0]), V(p[i][1]), V(p[i][2]));
             }
             b.end();

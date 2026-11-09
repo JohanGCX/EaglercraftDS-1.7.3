@@ -17,7 +17,7 @@ world generation, lighting, fluids, redstone, mobs, saving and the menus are all
   available, behaviour was **ported from them**, and comments name the original classes (`WorldGenLakes`, `BlockFluid`, `EntityMinecart.onUpdate`, …).
   The owner of the project has the full decompilation and can paste any `.java` file when exact original behaviour is needed — **ask for it instead of guessing.**
 - Target: real DS hardware (DS Fat/Lite is the performance baseline), also DSi and emulators (melonDS reproduces the DS limits; no$gba hides them).
-- Code size: about 47,000 lines, 70 `.cpp` and 103 `.h` files, all in `source/` (flat directory, no subfolders).
+- Code size: about 47,000 lines, 77 `.cpp` and 122 `.h` files, all in `source/` (flat directory, no subfolders).
 - Language of the codebase: **English is the target** for new code, identifiers and anything user visible. Most *existing comments* are still in Spanish
   (the project was developed in Spanish). Do not be confused by that; new comments should be in English.
 
@@ -60,12 +60,12 @@ a "what to test" list → they build and report back (with the profiler output i
 ## 3. Build system
 
 - Toolchain: devkitPro **devkitARM** + **libnds** + libfat/filesystem + **grit**. Install on any platform with `dkp-pacman -S nds-dev`.
-- Layout: `source/` (code), `graphics/` (PNG + `.grit` conversion settings), `tools/` (`alphakey`), `Makefile`, `LICENSE`, `README.md`, `CLAUDE.md`.
+- Layout: `source/` (code), `graphics/` (PNG + `.grit` conversion settings), `tools/` (`alphakey`, `mkmusic.py`, `mkicon.py`), `icon.bmp`, `Makefile`, `LICENSE`, `README.md`, `CHANGELOG.md`, `CLAUDE.md`.
 - Build with `make` in a shell where `DEVKITPRO`/`DEVKITARM` are set. Output: `<folder name>.nds` (the Makefile uses `basename $(CURDIR)` as the target name).
 - Compiler flags (Makefile): `-g -Wall -O2 -march=armv5te -mtune=arm946e-s -fomit-frame-pointer -ffast-math -ffunction-sections -fdata-sections -mthumb -mthumb-interwork -DARM9`, C++: `-fno-rtti -fno-exceptions -fno-threadsafe-statics -std=gnu++11`;
   link with `--gc-sections`, libs `-lfilesystem -lfat -lnds9`. No exceptions, no RTTI, C++11 only. `-fno-threadsafe-statics`: the game is single-threaded, so function-local
   statics need no guard. Optional defines: `-DMC_NO_ITCM` (keep the `MC_HOT` functions in main RAM), `-DMC_NO_DSI_BOOST` (do not request the 133 MHz DSi clock); see §7.9.
-  Files listed in `SMALL_OFILES` are compiled with `-Os`. Current list: `CraftingScreen InventoryScreen MenuFont TextKeyboard NewWorldMenu Options PauseScreen SettingsMenu SubScreenMenu TopScreenMenu WorldSelectMenu GameOverScreen MenuPanorama SignManager WorldSave Profiler Governor Furnace ChestStore Redstone Pistons NoteBlocks TntManager Dispenser Projectiles MinecartManager BoatManager PaintingManager PartialBlocks` (all `.o`).
+  Files listed in `SMALL_OFILES` are compiled with `-Os`. Current list: `CraftingScreen InventoryScreen MenuFont TextKeyboard NewWorldMenu Options PauseScreen SettingsMenu SubScreenMenu TopScreenMenu WorldSelectMenu GameOverScreen MenuPanorama SignManager WorldSave Profiler Governor Furnace ChestStore Redstone Pistons NoteBlocks TntManager Dispenser Projectiles MinecartManager BoatManager PaintingManager PartialBlocks Music` (all `.o`).
   Add a file to that list if it is cold code and RAM is tight. An experiment compiling hot math in ARM mode (`-marm`) was slower (a column went from 2.5 to 23 ms: 16-bit RAM bus + 8 KB cache favour compact Thumb) and is commented out — do not retry it.
 - Output name: `TARGET := basename $(CURDIR)`; build dir `build/`; `DATA := data`, `INCLUDES := include` (these two directories may not exist; fine).
 - PNG → data: `graphics/*.png` are converted by `grit` with the settings in the matching `.grit` file. Typical `.grit`: `-gb -gB8 -p` (8-bit bitmap + palette),
@@ -75,6 +75,7 @@ a "what to test" list → they build and report back (with the profiler output i
   `GL_TEXTURE_COLOR0_TRANSPARENT`. This keeps standard RGBA Beta texture packs usable. `tools/alphakey.c` is portable C (uses `stb_image`); the Makefile uses `alphakey.exe`
   on Windows and compiles `alphakey.c` once with the host `cc` on Linux/macOS. Custom rules for these atlases are placed *after* the main rule (placing them first would make
   them the default make target).
+- **Banner (icon in Twilight Menu++ / flashcart menus):** `icon.bmp` (32x32, 4 bpp, palette entry 0 = transparent) is passed to ndstool through `GAME_ICON` in the Makefile, together with `GAME_TITLE` / `GAME_SUBTITLE1` / `GAME_SUBTITLE2`. Regenerate it from any PNG with `python3 tools/mkicon.py image.png icon.bmp` (needs Pillow).
 - Some data headers are generated from PNG/OGG by scripts and marked "Generated … do not edit by hand": `SoundData.h`, `SoundAmbient.h`, `SkyTex.h`, `CloudsData.h`,
   `ColorMapData.h`, `AnimData.h`, `AnimItemsData.h`, `PaintingTex.h`, `MapBg.h`, `ArmorShape.h`. If you must change one, regenerate it instead of editing numbers.
 
@@ -103,6 +104,7 @@ name; the file is long and has many `static` helpers at the top (`computeCelesti
   A static 24 KB scratch buffer (`DL_SCRATCH_WORDS = 6144` words) is used to build each band before copying it to its exact size.
 - Pacing: if a drawn frame exceeds ~16.7 ms the vblank wait rounds up and the whole tick takes 4 instead of 3 vblanks. That delay is recorded as a **debt** (`s_lagTicks`) and later
   iterations (which do not draw) skip their wait until it is repaid, so the tick rate stays at 20 Hz while the average load is sustainable.
+- **Pause** (`paused`, pause menu open) freezes the game like `Minecraft.isGamePaused`: `frameCounter` and `gameTimeTicks` do not advance, so the 20 Hz tick never runs and `partialTick` stays fixed (static image); `TextureAnim::onVBlank` and `player->handleInput` are skipped. Rendering, chunk loading/meshing and the music (and jukebox records) keep going. Resuming continues exactly where it stopped, with no catch-up ticks.
 - `Governor` (`Governor.cpp`): looks at the previous frame time. If it exceeded ~20 ms it halves the budgets (`budgetPercent()`) and may skip the heavy work of up to two consecutive frames
   (`skipHeavy()`). It is disabled on the loading screen.
 - Day length: world ticks at 20/s; `computeCelestialAngle` is an exact port of `WorldProvider.calculateCelestialAngle`.
@@ -187,6 +189,8 @@ Mob AI notes: A\* pathfinding is capped (`PATH_MAX_NODES = 200`, `PATH_MAX_EXPAN
 | `SettingsMenu.*`, `Options.*`, `Controls.*`, `TextKeyboard.*`, `MenuFont.*` | Options console UI (list with scrolling and submenus), settings storage, rebindable controls (two profiles), on-screen keyboard, 4×6 bit font. |
 | `WorldSave.*` | Folder structure on the SD card, world slots, session handling (§14). |
 | `Sound.*`, `SoundData.h`, `SoundAmbient.h` | Audio: 8-bit PCM clips played with `soundPlaySample`. `Sound::uiClick()` plays the button click (no per-frame filter, works in menus). |
+| `Music.*`, `ImaAdpcm.h`, `tools/mkmusic.py` | Background music streamed from the SD card (see §13). `Music::update(inGame)` is called once per main-loop iteration. `ImaAdpcm.h` is the block decoder (plain C++, testable on a PC). `mkmusic.py` converts `.ogg` to `.mus`. |
+| `TexturePack.*`, `PackImage.*`, `TexturePackMenu.*` | Beta texture packs (§12.1). `PackImage` is plain C++ (inflate, PNG, zip, median-cut palette; testable on a PC); `TexturePack` handles the SD, the cache and the VRAM; `TexturePackMenu` is the list behind the main menu's Texture Packs button. |
 | `HealthHud.*`, `HealthHudLayout.h`, `ArmorShape.h` | Health/armor/bubble HUD on the top screen. |
 
 ---
@@ -392,7 +396,7 @@ The debug screen's last line shows the generator of the current world (`Seed <n>
 - **Chests**: `Chest.h` has no stored orientation; front face and left/right half of a double chest are derived from neighbours at draw time (`sideIndex`, terrain.png cells 25–27, 41/42 front of double, 57/58 back); `canPlaceAt` forbids triple chests. `ChestStore` keeps up to `MAX_CHESTS` entries keyed by grid cell `(gx,gy,gz)` with `SLOTS` slots of `{type u8, count u8, durability u16}`; minecart chests reuse it with the cart's uid as `gx` and `MinecartManager::CHEST_KEY_Y` as `gy`. `transferWithInventory`: move whole stack into an empty slot, merge stackables, otherwise swap. File `chests.dat`: `'CHST'`, v1, count, then per chest gx,gy,gz (int32 LE) + slots × 4 bytes.
 - **Note blocks (`NoteBlocks.cpp`)**: state table `MAX_NOTES` (gx,gy,gz,note 0–24,prev power); instrument chosen from the block below (`instrumentFor`: stone-like → bass drum, sand/gravel/soul sand → snare, glass/glowstone → clicks, wood-like → bass guitar, else harp); pitch = 2^((note−12)/12). Sound uses the DS **PSG/noise channels** (not samples), up to 8 voices stopped by `tickSound()` after 2–6 ticks; volume fades to 0 at 32 blocks. Needs air above. `notes.dat`: `'MNOT'`, v1, count byte, then gx,gy,gz int32 + note byte (only non-zero notes are saved).
 - **Mob–mob collision (`MobBody.h`)**: each manager exports `MobBody` pointers (x,y,z,velocity,w,h); `MobBodies::collide` pushes every overlapping pair apart (0.05 velocity, stronger when closer, box inflated by 0.2).
-- **Sleeping (`Sleeping.h`)**: eye position/orientation/model shift per bed direction, `nearestEmpty` (first cell with solid floor and 2 air above in the 3×3 around each bed half), overlay `0x101020` up to alpha 220 (`FULL_ASLEEP 100`, fades until 110).
+- **Sleeping (`Sleeping.h`)**: eye position/orientation/model shift per bed direction, `nearestEmpty` (first cell with solid floor and 2 air above in the 3×3 around each bed half), overlay `0x101020` up to alpha 220 (`FULL_ASLEEP 100`, fades until 110). While sleeping the player's width is 0.2 (Beta `setSize(0.2, 0.2)`), so `main.cpp` calls `insideOpaqueBlock(..., sleeping ? 0.2f : 0.6f)`; with the normal 0.6 a bed whose pillow end touches a wall suffocated the player (the eye sits 0.1 from the block edge).
 - **Mob spawners (`Spawners.cpp`)**: up to `MAX_ENTRIES = 8` active spawner blocks tracked at once. Every 20 ticks it scans the chunks within 16 blocks of the player (±17 in Y) for `MOB_SPAWNER` and registers those within 16 blocks; entries drop out when the block disappears or the player leaves range. The mob kind is the block's `liquidMeta` (0 zombie, 1 skeleton, 2 spider). Per entry: smoke + flame particles every 2 ticks, spin `1000/(delay+200)` degrees per tick, and when `delay` reaches 0 it tries 4 spawns through `HostileManager::spawnerSpawn(cm, kind, x, y, z)` (negative result = blocked → retry in 200–799 ticks; positive = spawned → `Particles::spawnerBurst` and new delay 200–799). `draw` renders a miniature rotating mob (`HostileModel::draw` with a temporary `Mob`, scale 7/16, tilted −30°) inside the cage. Initial delay is 20 ticks.
 - **Fixed screens**: `StartupSplash` (Eagtek logo then Mojang logo, 60 frames each, 8-bit LZ77 bitmaps decompressed straight into VRAM; the bottom screen stays white until `finish()` restores the console). `GameOverScreen`: `gameover` 8-bit LZ77 bitmap on the sub screen; Respawn button x 51–202, y 83–104; Title menu y 129–150. `LoadingScreen`: `genericbg` (sub, 16-bit) and `topgenericbg` (top, LZ77 16-bit) with bit 15 forced to 1; `showTopDirtOnly()` redraws only the top screen.
 
@@ -510,14 +514,32 @@ Consequence: the animated cells must exist in `terrain.png` at those coordinates
   All bodies push each other through `MobBodies::collide` after every tick. `Partial::mobWalked` lets mobs trample farmland.
 - Drops go through small ring queues (`DROP_QUEUE = 8`) that `main.cpp` drains with `popDrop`.
 
+### 12.1 Texture packs
+- Location: `/mcdsefiles/texturepacks/<name>.zip` (as in the Beta: the zip is not extracted) or an extracted folder. Valid only with `pack.txt`, `terrain.png` and `gui/items.png` at the root; otherwise it is not listed. The title is the first line of `pack.txt` (29 characters max). Used (table `SLOTS` in `TexturePack.cpp`; required: `terrain.png`, `gui/items.png`; the rest is optional and keeps the built-in texture when missing or unreadable): `gui/icons.png` (top-left 128x32 crop), `item/sign.png`, `item/cart.png`, `item/boat.png`, `mob/` pig, cow, chicken, sheep + sheep_fur (stacked into our 64x64 sheep), zombie, skeleton, spider, spider_eyes, creeper, pigzombie, ghast, ghast_fire, slime, squid, wolf, wolf_angry, wolf_tame (larger HD files are averaged down, e.g. a 128x64 ghast), and, if present, `misc/grasscolor.png` / `misc/foliagecolor.png` (biome tint: sampled into the 33x33 tables of `ColorMaps`, which then point to a 6.5 KB block that only exists while such a pack is active; `ColorMaps::setCustom` / `useDefault`). The cache stores every slot (bitmap + palette, in `SLOTS` order) and then the tables (`CACHE_VERSION` 3). When a pack is converted, everything is first restored from `default.bin`, so textures the pack lacks are the built-in ones and not the previous pack's. Entity textures are refreshed with `Texture::refreshEntityTextures()` (in the main menu they are unloaded anyway and reload from the new bitmaps).
+- `PNG -> DS`: `PackImage::decodePng` streams the PNG row by row (own inflate, 32 KB window) into a 256x256 RGB15 buffer (alpha < 128 = transparent); 512 and 1024 px packs (32x, 64x) are box-filtered down to 16x. `PackImage::quantize` makes the 256-colour palette by median cut (index 0 = magenta, transparent, like grit `-gT FF00FF`). Zip entries are inflated to memory first (2 MB limit per PNG). Conversion runs only in the main menu (free heap) or at boot; peak about 128 KB + the PNG + 64 KB.
+- **No extra RAM**: the pack is written over the grit arrays in main RAM (`terrainBitmap`, `terrainPal`, `itemsBitmap`, `itemsPal` are cast away from const). Everything that reads them (hotbar, inventory, crafting, chests, furnace, `TextureAnim`, `AnimItems`) picks up the pack with no changes. VRAM is refreshed in place (`TexturePack.cpp: upload`, texels through the LCD-mapped banks A/D like `TextureAnim`, palette with `glColorTableEXT`), then `TextureAnim::init()` and `AnimItems::init()` rebuild their colour maps.
+- Files: `/mcdsefiles/texturepack.txt` = selected pack name (missing = Default). `/mcdsefiles/cache/<name>.bin` = converted atlases (header `MTP1`, version, source size/date signature; rebuilt when the zip or PNGs change or `CACHE_VERSION` is bumped). `/mcdsefiles/cache/default.bin` = copy of the built-in atlases, written at boot while they are untouched (signature = checksum of the built-in arrays, so a new build rewrites it); Default is restored from it without restarting.
+- Killswitch (`TexturePack::boot`, after `AnimItems::init` in `main.cpp`): if the selected pack is gone, incomplete or fails to load, or `/mcdsefiles/cache/converting` is still there (a conversion was cut off), the game falls back to Default and clears the selection.
+
+### 12.2 Skins
+- `Skins.*`: same design as texture packs, for `char.png` only (`charBitmap` / `charPal`, 64x64, 8 bits). Files: `/mcdsefiles/skins/<name>.png`, selection `/mcdsefiles/skin.txt`, cache `/mcdsefiles/skinscache/<name>.bin` (header `MSK1`), original in `/mcdsefiles/skinscache/default.bin`, killswitch marker `/mcdsefiles/skinscache/converting`.
+- Accepted sizes: 64x32 (classic) and 64x64 (modern), or 2x/4x/8x of those (averaged down). A classic skin fills the top half and leaves the bottom transparent; `SteveModel` uses only the classic (top half) UVs and draws no hat layer.
+- `Skins::boot()` runs just before `Texture::loadSkinAtlas()` (the texture is then uploaded from the new bitmap); from the menu, `TexturePack::uploadTexture` refreshes it in VRAM (it also serves the first-person arm). The list UI is `TexturePackMenu::open(true)` behind the main menu's Skins button.
+
 ---
 
 ## 13. Audio
+- Jukebox records: `Music::playRecord("13" | "cat", ...)` from `Partial::jukeboxInsert` (13.mus / cat.mus, SD first then NitroFS). A record uses the same channel/ring as the background music: it cuts the current track and stops the background wait (`s_waiting = false`); when it ends or is ejected (`Partial::jukeboxEject` -> `Music::stopRecordAt`), `finishTrack()` draws a new wait. Volume falls off linearly to 0 at 64 blocks and is panned from `Music::setListener` (called each frame by `main.cpp`, which also stops the record if the loaded jukebox cell is gone, e.g. TNT). Records play with music off, but not with sound off.
 
 - Clips are 8-bit signed mono PCM arrays in `SoundData.h` (indexed by the `SoundId` enum and the `SOUND_CLIPS` table, with sample rate per clip). Extra ambience (rain, thunder) in `SoundAmbient.h`.
 - Groups: grass, wood, stone, sand, gravel, snow (step sounds; break/place use the same set for sand/gravel/snow because the dig clips are missing). `Sound::groupOf(BlockType)` maps blocks to groups
   (note: dirt, clay and farmland use gravel, as in Beta).
-- No music (disabled for performance). `Options::sound` disables everything.
+- **Music** (`Music.cpp`): files `/mcdsefiles/music/<name>.mus` (calm1-3, hal1-4, nuance1-2, piano1-3), made by `tools/mkmusic.py` from the Beta `.ogg` files. They are built into the `.nds` through NitroFS (`nitrofiles/music/` in the repo, `NITRO` in the Makefile, `nitroFSInit` in `main.cpp` after `fatInitDefault`), read as `nitro:/music/<name>.mus`; a file with the same name in `/mcdsefiles/music/` on the SD is tried first and overrides it. Format: 512-byte header (`"MUS1"`, u16 rate = 8000, u16 block bytes = 512, u32 block count, u32 sample count) then IMA-ADPCM mono blocks of 512 bytes (1017 samples each, WAV style; decoder rounding matches ffmpeg's `adpcm_ima_wav`), so every block is one SD sector.
+  Playback: `update()` decodes **one block per frame at most** into an 8 KB 16-bit ring (`RING_SAMPLES = 4096`) played by one looping hardware channel (`soundPlaySample(..., loop=true)`). The ARM9 cannot read the channel position, so it is estimated from a free-running 32-bit timer (timers 0 and 1 in cascade; the profiler owns 2 and 3) using `TICKS_PER_SAMPLE = 2 * (0x1000000 / rate)`, which is what libnds really programs; `MARGIN` covers the estimate error. On underrun (long frame, loading) the ring is refilled and the channel restarted. The pause before each track (after entering a world and between tracks) is `Options::musicWait`: 0 fast = 5-15 s, 1 normal = 5-10 min (default), 2 long = 10-20 min (Beta's `SoundManager` gap); changing it in the menu redraws the pending wait. Plays only in `STATE_PLAYING`, stops when `Options::sound` or `Options::music` is off or the game leaves the world.
+  Loudness: `mkmusic.py` normalises every track (average -24 dB, peaks <= -1 dB, max +18 dB gain) because the Beta tracks differ by ~25 dB. `Options::musicVolume` (Options -> sound & music -> music volume) sets the hardware volume up to 100 %; 150 % and 200 % keep the hardware at 127 and multiply the decoded samples in `Music.cpp` (Q8 gain with clamping; applies to blocks decoded after the change, i.e. within ~0.5 s).
+  Jukebox records (13, cat) are **not** implemented yet; they would reuse this streaming path.
+  Do not use timers 0/1 elsewhere, and do not add `fopen` calls for music inside the frame (the file is opened once per track).
+- `Options::sound` off disables sound effects and music.
 - To add a sound: convert the OGG to 8-bit mono (11025 or 8000 Hz), append the array to `SoundData.h`, add an entry to `SOUND_CLIPS`, add an enum value **before** `S_COUNT`, and add a function in `Sound.cpp`.
   Beware: `playClip` has a per-clip "not twice within 3 frames" filter keyed on the frame counter that only advances while playing; UI sounds bypass it.
 
@@ -529,10 +551,16 @@ Consequence: the animated cells must exist in `terrain.png` at those coordinates
 
 ```
 /mcdsefiles/
-├── options.dat            "MCO1" + 23 bytes of options (see below)
+├── options.dat            "MCO1" + 25 bytes of options (see below)
+├── music/                 *.mus that replace the built-in tracks (optional)
 ├── controlsprofile.dat    "MCK1" + 2 profiles × 13 actions × u16 (little endian)
 ├── spikes.txt             optional profiler log
-├── skins/                 player skins
+├── skins/                 player skins (.png), see §12.2
+├── skin.txt               selected skin (missing = Default)
+├── skinscache/            converted skins (<name>.bin) and default.bin
+├── texturepacks/          Beta texture packs (.zip or folder), see §12.1
+├── texturepack.txt        selected texture pack (missing = Default)
+├── cache/                 converted texture packs (<name>.bin) and default.bin
 └── worlds/
     ├── world1 … worldN/   saved worlds (or .tempworld while a new world has never been saved)
     │   ├── meta.dat        player position/inventory/spawn/time/armor, terrain generator version …
@@ -546,7 +574,7 @@ Consequence: the animated cells must exist in `terrain.png` at those coordinates
 `WorldSave` tracks the active folder. New worlds start in `.tempworld` and are renamed to `worldN` at first save; an existing world is played in place. On boot `recoverInterruptedSession()`
 restores or discards a leftover `.tempworld`. Deleting a world removes subfolders too (FAT `remove()` doesn't delete non-empty folders).
 
-### `options.dat` layout (25 bytes; older files are shorter and missing fields keep defaults)
+### `options.dat` layout (29 bytes; older files are shorter and missing fields keep defaults)
 
 | Byte | Field | Notes |
 |---|---|---|
@@ -569,6 +597,10 @@ restores or discards a leftover `.tempworld`. Deleting a world removes subfolder
 | 22 | debugCoordsOnly | |
 | 23 | oldMobSpawnLimit | 1 = original (pre-RC1) mob limits; 0 (default) = half. See `MobCull.h` for draw culling and far-AI throttling |
 | 24 | oldTerrainGenerator | 1 = NEW worlds are created with terrain generator 0 (original, plateaus); 0 (default) = current generator. Saved worlds always keep their own (see §7.7) |
+| 25 | music | background music on/off (default on; older files without this byte keep it on) |
+| 26 | *(reserved)* | was `fastMusic` in a test build; written as 0, ignored on load |
+| 27 | musicVolume | 0..5 = 25, 50, 75, 100, 150, 200 % (default 3; values > 5 load as 3) |
+| 28 | musicWait | 0 fast (5-15 s), 1 normal (5-10 min), 2 long (10-20 min); default 1; values > 2 load as 1 |
 
 **To add an option:** add the field to `Options::Data` (+ comment), set the default in `Options::load()`, read it with an `n >= <size>` guard, write it in `Options::save()` and bump the buffer size in both places,
 then add a row in `SettingsMenu.cpp` (main list or a submenu) and handle it in `SettingsMenu::update`. Always append the byte at the end.
@@ -594,7 +626,7 @@ Every A/B/LEFT/RIGHT press plays `Sound::uiClick()`.
 
 ## 16. Known differences from Beta 1.7.3 (deliberate)
 
-8×8 chunks and short view distance (everything scaled); simplified 2D-noise Nether terrain; animals/hostiles not saved; no music and a reduced sound set; no stars or sunrise glow
+8×8 chunks and short view distance (everything scaled); simplified 2D-noise Nether terrain; animals/hostiles not saved; a reduced sound set (background music is optional: it needs the `.mus` files on the SD card); no stars or sunrise glow
 (sun/moon only in ds/dsi); leaves don't attenuate light (water/ice do); the map is carried in the hotbar (Legacy-style) instead of on the bottom screen; capped A\* pathfinding; reduced-size painting texture; simplified water-surface height.
 See `README.md` for the user-facing version of this list.
 
@@ -614,5 +646,5 @@ See `README.md` for the user-facing version of this list.
 
 ## 18. Credits and license
 
-Code written by Claude (Anthropic) under the direction of JohanGCX, who also designed and implemented the menus exclusive to this port. Community contributions: **figuidos** (https://www.youtube.com/@figuidos) — chunk lookup and ITCM optimizations, DSi terrain caches, the normalized terrain generator (version 1) and the DSi clock boost. Game logic reference: the decompiled Beta 1.7.3 by PeytonPlayz595 (Eaglercraft).
+Code written by Claude (Anthropic) under the direction of JohanGCX, who also designed and implemented the menus exclusive to this port. Community contributions: **figuidos** (https://www.youtube.com/@figuidos) — chunk lookup and ITCM optimizations, DSi terrain caches, the normalized terrain generator (version 1), the DSi clock boost, the background music streaming (`Music.cpp`, `ImaAdpcm.h`, `tools/mkmusic.py`), the sound & music submenu, the game icon (`tools/mkicon.py`) and the sleeping suffocation fix. Game logic reference: the decompiled Beta 1.7.3 by PeytonPlayz595 (Eaglercraft).
 *Minecraft* and its assets belong to Mojang Studios. Source code is MIT licensed (see `LICENSE`); game assets are not covered by that license.

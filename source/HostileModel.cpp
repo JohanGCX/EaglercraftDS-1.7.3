@@ -232,10 +232,12 @@ namespace {
                 int ua = baseU * 16, ub = (int)((baseU + 15.99f) * 16.0f);
                 if ((layer / 2) % 2 == 0) { const int t = ua; ua = ub; ub = t; }   // capas alternas espejadas
                 const int va = v0i * 16, vb = (int)((v0i + 15.99f) * 16.0f);
-                GFX_TEX_COORD = TEXTURE_PACK(ub, vb); glVertex3v16(floattov16( halfW), floattov16(0.0f - dy), floattov16(dz));
-                GFX_TEX_COORD = TEXTURE_PACK(ua, vb); glVertex3v16(floattov16(-halfW), floattov16(0.0f - dy), floattov16(dz));
-                GFX_TEX_COORD = TEXTURE_PACK(ua, va); glVertex3v16(floattov16(-halfW), floattov16(1.4f - dy), floattov16(dz));
-                GFX_TEX_COORD = TEXTURE_PACK(ub, va); glVertex3v16(floattov16( halfW), floattov16(1.4f - dy), floattov16(dz));
+                // Beta: y = 0 - var17, con var17 = yOffset (0 en un mob) que BAJA 0,45 por capa: cada capa queda mas ARRIBA (antes se restaba al reves
+                // y las capas se hundian en el suelo)
+                GFX_TEX_COORD = TEXTURE_PACK(ub, vb); glVertex3v16(floattov16( halfW), floattov16(dy), floattov16(dz));
+                GFX_TEX_COORD = TEXTURE_PACK(ua, vb); glVertex3v16(floattov16(-halfW), floattov16(dy), floattov16(dz));
+                GFX_TEX_COORD = TEXTURE_PACK(ua, va); glVertex3v16(floattov16(-halfW), floattov16(1.4f + dy), floattov16(dz));
+                GFX_TEX_COORD = TEXTURE_PACK(ub, va); glVertex3v16(floattov16( halfW), floattov16(1.4f + dy), floattov16(dz));
                 h -= 0.45f;
                 dy += 0.45f;
                 halfW *= 0.9f;

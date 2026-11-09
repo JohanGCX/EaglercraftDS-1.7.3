@@ -7,6 +7,8 @@ public:
 
     static bool isNewLoadTouched(int touchX, int touchY);   // Play game
     static bool isOptionsTouched(int touchX, int touchY);   // Options
+    static bool isTexturePacksTouched(int touchX, int touchY);   // Texture Packs
+    static bool isSkinsTouched(int touchX, int touchY);          // Skins
 };
 
 #endif

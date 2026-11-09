@@ -259,8 +259,9 @@ namespace {
         for (int di = 0; di < 21; di++) for (int dj = 0; dj < 21; dj++) for (int dk = 0; dk < 21; dk++) {
             if (!grid[di][dj][dk]) continue;
             const int i = ci + di - 10, j = cj + dj - 10, k = ck + dk - 10;
+            if (j < -1 || j > 126 || !w.chunkAt(i + 4, k + 4)) continue;   // sin chunk cargado: type() dice piedra para frenar el rayo, pero ahi no hay nada que romper ni soltar
             const BlockType t = w.type(i, j, k);
-            if (unbreakable(t)) continue;
+            if (t == BlockType::AIR || unbreakable(t)) continue;
             if (t == BlockType::TNT) {   // BlockTNT.onBlockDestroyedByExplosion: no se rompe, se enciende con la mecha corta
                 cm.setBlockGlobal(i + 4, j + 1, k + 4, BlockType::AIR);
                 TntManager::primeFromExplosion(i + 4, j + 1, k + 4);
@@ -268,7 +269,8 @@ namespace {
             }
             if (t == BlockType::NOTE_BLOCK) NoteBlocks::remove(i + 4, j + 1, k + 4);
             const bool noDrop = t == BlockType::OAK_LEAVES || t == BlockType::BIRCH_LEAVES || t == BlockType::SPRUCE_LEAVES || t == BlockType::TALLGRASS;
-            if (!noDrop && s_rng.nextFloat() < 0.3f) pushDrop(getDropType(t), 1, (double)i + 0.5, (double)j - 0.3, (double)k + 0.5);
+            const BlockType drop = t == BlockType::STONE ? BlockType::COBBLESTONE : getDropType(t);   // BlockStone.idDropped: piedra -> roca (como al picarla)
+            if (!noDrop && s_rng.nextFloat() < 0.3f) pushDrop(drop, 1, (double)i + 0.5, (double)j - 0.3, (double)k + 0.5);
             cm.setBlockGlobal(i + 4, j + 1, k + 4, BlockType::AIR);
         }
 

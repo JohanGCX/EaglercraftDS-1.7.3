@@ -18,10 +18,10 @@ static void texCoordCell(int col, int row, int corner) {
     int v1 = v0 + 16;
 
     switch (corner) {
-        case 0: GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v1)); break;
-        case 1: GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v1)); break;
-        case 2: GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v0)); break;
-        case 3: GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v0)); break;
+        case 0: GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1)); break;
+        case 1: GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1)); break;
+        case 2: GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0)); break;
+        case 3: GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0)); break;
     }
 }
 
@@ -249,10 +249,10 @@ void DroppedItem::draw(float playerX, float playerY, float playerZ, float player
             int u1 = u0 + 16, v1 = v0 + 16;
 
             glBegin(GL_QUADS);
-		GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v1)); glVertex3v16(V(-s), V(-0.25f), V(0));
-                GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v1)); glVertex3v16(V( s), V(-0.25f), V(0));
-                GFX_TEX_COORD = TEXTURE_PACK(inttot16(u1), inttot16(v0)); glVertex3v16(V( s), V( 0.75f), V(0));
-                GFX_TEX_COORD = TEXTURE_PACK(inttot16(u0), inttot16(v0)); glVertex3v16(V(-s), V( 0.75f), V(0));
+		GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::hi(v1)); glVertex3v16(V(-s), V(-0.25f), V(0));
+                GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::hi(v1)); glVertex3v16(V( s), V(-0.25f), V(0));
+                GFX_TEX_COORD = TEXTURE_PACK(TexUV::hi(u1), TexUV::lo(v0)); glVertex3v16(V( s), V( 0.75f), V(0));
+                GFX_TEX_COORD = TEXTURE_PACK(TexUV::lo(u0), TexUV::lo(v0)); glVertex3v16(V(-s), V( 0.75f), V(0));
             glEnd();
         } else {
             // Bloque normal — cubo completo, sin cambios respecto a lo que ya tenías

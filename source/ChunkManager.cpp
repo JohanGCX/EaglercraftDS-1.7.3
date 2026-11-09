@@ -1165,6 +1165,53 @@ namespace {
     };
 
     const int LIQUID_TICKS_PER_STEP = 24;   // tope por tick del juego; lo que sobra espera al siguiente, en el mismo orden
+
+    // Block.lightOpacity > 2: bloques opacos enteros, agua, lava y hielo (las hojas son 1 y el vidrio 0)
+    bool opaqueForGrass(BlockType t) {
+        return (isNormalCube(t) && !isLeavesBlock(t) && t != BlockType::GLASS) || t == BlockType::GLOWSTONE || isLiquidBlock(t) || t == BlockType::ICE;
+    }
+
+    // World.getBlockLightValue: la luz del cielo menos la de la hora, o la de bloque, la mayor. Fuera del mundo por arriba: 15; sin chunk cargado: -1
+    int lightAtGlobal(const ChunkManager& cm, int gx, int gy, int gz) {
+        if (gy >= WorldConfig::SIZE_Y) return 15;
+        if (gy < 0) return 0;
+        const int cx = gx >= 0 ? gx / WorldConfig::SIZE_X : -((-gx + WorldConfig::SIZE_X - 1) / WorldConfig::SIZE_X);
+        const int cz = gz >= 0 ? gz / WorldConfig::SIZE_Z : -((-gz + WorldConfig::SIZE_Z - 1) / WorldConfig::SIZE_Z);
+        Chunk* c = cm.getChunkByChunkCoord(cx, cz);
+        if (!c || !c->isGenerationComplete()) return -1;
+        const int xi = gx - cx * WorldConfig::SIZE_X, zi = gz - cz * WorldConfig::SIZE_Z;
+        int sky = (int)c->getSkyLight(xi, gy, zi) - cm.getSkylightSubtract();
+        if (sky < 0) sky = 0;
+        const int bl = (int)c->getBlockLight(xi, gy, zi);
+        return sky > bl ? sky : bl;
+    }
+
+    BlockType typeAtGlobal(const ChunkManager& cm, int gx, int gy, int gz) {
+        if (gy < 0) return BlockType::STONE;
+        if (gy >= WorldConfig::SIZE_Y) return BlockType::AIR;
+        const int cx = gx >= 0 ? gx / WorldConfig::SIZE_X : -((-gx + WorldConfig::SIZE_X - 1) / WorldConfig::SIZE_X);
+        const int cz = gz >= 0 ? gz / WorldConfig::SIZE_Z : -((-gz + WorldConfig::SIZE_Z - 1) / WorldConfig::SIZE_Z);
+        Chunk* c = cm.getChunkByChunkCoord(cx, cz);
+        if (!c || !c->isGenerationComplete()) return BlockType::STONE;   // lo que no esta cargado no cambia
+        return c->getBlockType(gx - cx * WorldConfig::SIZE_X, gy, gz - cz * WorldConfig::SIZE_Z);
+    }
+
+    // BlockGrass.updateTick (Beta 1.7.3): tapado (luz < 4 encima y un bloque opaco) vuelve a tierra 1 de cada 4 veces; con luz 9 o mas encima,
+    // prueba una celda al azar de 3 x 5 x 3 (de 3 abajo a 1 arriba) y si es tierra con luz 4 o mas y nada opaco encima, se vuelve pasto
+    void grassTick(ChunkManager& cm, int gx, int gy, int gz, unsigned int& rng) {
+        auto next = [&](unsigned int n) { rng = rng * 1664525u + 1013904223u; return (int)((rng >> 8) % n); };
+        const int lightUp = lightAtGlobal(cm, gx, gy + 1, gz);
+        if (lightUp < 0) return;
+        if (lightUp < 4 && opaqueForGrass(typeAtGlobal(cm, gx, gy + 1, gz))) {
+            if (next(4) != 0) return;
+            cm.setBlockGlobal(gx, gy, gz, BlockType::DIRT);
+        } else if (lightUp >= 9) {
+            const int x = gx + next(3) - 1, y = gy + next(5) - 3, z = gz + next(3) - 1;
+            if (typeAtGlobal(cm, x, y, z) != BlockType::DIRT) return;
+            const int l = lightAtGlobal(cm, x, y + 1, z);
+            if (l >= 4 && !opaqueForGrass(typeAtGlobal(cm, x, y + 1, z))) cm.setBlockGlobal(x, y, z, BlockType::GRASS);
+        }
+    }
 }
 
 void ChunkManager::tickLiquids() {
@@ -1208,6 +1255,8 @@ void ChunkManager::tickLiquids() {
                     }
                     setBlockGlobal(mgx, yi, mgz, rt == BlockType::ICE ? BlockType::WATER : BlockType::AIR);
                 }
+            } else if (rt == BlockType::GRASS) {   // BlockGrass.updateTick: el pasto se extiende a la tierra de al lado (o muere tapado)
+                grassTick(*this, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi, s_randomTickRng);
             } else if (rt == BlockType::FARMLAND) {   // BlockFarmland.updateTick: se hidrata o se seca (1 de cada 5 ticks aleatorios)
                 s_randomTickRng = s_randomTickRng * 1664525u + 1013904223u;
                 Partial::farmlandTick(*this, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi, (int)((s_randomTickRng >> 8) % 5u));
@@ -1403,11 +1452,11 @@ bool ChunkManager::isInsideOfMaterial(float worldX, float testWorldY, float worl
 }
 
 // Entity.isEntityInsideOpaqueBlock: 8 puntos alrededor de la cabeza (0,54 de ancho, 0,1 de alto) dentro de un bloque cúbico y sólido
-bool ChunkManager::insideOpaqueBlock(float worldX, float testWorldY, float worldZ) const {
+bool ChunkManager::insideOpaqueBlock(float worldX, float testWorldY, float worldZ, float width) const {
     for (int i = 0; i < 8; i++) {
-        const float dx = ((float)((i >> 0) % 2) - 0.5f) * 0.6f * 0.9f;
+        const float dx = ((float)((i >> 0) % 2) - 0.5f) * width * 0.9f;
         const float dy = ((float)((i >> 1) % 2) - 0.5f) * 0.1f;
-        const float dz = ((float)((i >> 2) % 2) - 0.5f) * 0.6f * 0.9f;
+        const float dz = ((float)((i >> 2) % 2) - 0.5f) * width * 0.9f;
         if (isNormalCube(getBlockTypeAt(worldX + dx, testWorldY + dy, worldZ + dz))) return true;
     }
     return false;

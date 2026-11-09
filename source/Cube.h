@@ -8,6 +8,21 @@ struct TextureCell {
     int row;
 };
 
+// Texture coordinates inside one 16 x 16 cell of an atlas (terrain.png, items.png), in the DS 12.4 format (1 texel = 16 units).
+// Every cell edge is pulled 1/8 of a texel towards the inside of the cell: the GPU's interpolation and rounding could otherwise land
+// exactly on the first texel of the NEXT cell and show a thin line of an unrelated texture on the edge of a block (for example a pixel
+// of the Nether portal on the yellow flower, its neighbour in terrain.png). 1/8 of a texel is invisible; the mob models already do it.
+namespace TexUV {
+    const int INSET = 2;                                                    // 12.4 units (1/8 texel)
+    inline int lo(int texel) { return (texel << 4) + INSET; }               // a cell's left / top edge (u0, v0)
+    inline int hi(int texel) { return (texel << 4) - INSET; }               // a cell's right / bottom edge (u1 = u0 + 16, v1 = v0 + 16)
+    // any coordinate (in texels) of a quad that uses the cell starting at cellMin, kept inside that cell
+    inline int clampIn(float texel, int cellMin) {
+        const int t = (int)(texel * 16.0f), a = (cellMin << 4) + INSET, b = ((cellMin + 16) << 4) - INSET;
+        return t < a ? a : (t > b ? b : t);
+    }
+}
+
 struct FaceMask {
     bool top : 1;
     bool bottom : 1;

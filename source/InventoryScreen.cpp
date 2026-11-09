@@ -29,6 +29,7 @@ static u8 getItemsPixelIndex(int px, int py) {
 static void drawIconAt(int slotX, int slotY, BlockType type) {
     TextureCell top, side, bottom;
     getBlockTextures(type, top, side, bottom);
+    if (type == BlockType::JUKEBOX || isPistonBase(type)) side = top;   // el icono muestra la cara de arriba: la ranura del disco y el frente del piston (normal o pegajoso)
 
     bool isLeaves = isLeavesBlock(type);
 

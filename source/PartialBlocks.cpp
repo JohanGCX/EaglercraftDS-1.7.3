@@ -7,6 +7,7 @@
 #include "WorldConfig.h"
 #include "SignManager.h"
 #include "Weather.h"
+#include "Music.h"
 #include <math.h>
 
 // Coordenadas globales de celda: gx = chunkX * SIZE_X + xi, gy = yi, gz = chunkZ * SIZE_Z + zi (las mismas de LiquidWorld).
@@ -399,12 +400,17 @@ BlockType jukeboxRecord(const ChunkManager& cm, int gx, int gy, int gz) {
 bool jukeboxInsert(const ChunkManager& cm, int gx, int gy, int gz, BlockType record) {
     if (typeAt(cm, gx, gy, gz) != BlockType::JUKEBOX || metaAt(cm, gx, gy, gz) != 0 || !isRecord(record)) return false;
     put(cm, gx, gy, gz, BlockType::JUKEBOX, record == BlockType::RECORD_13 ? 1 : 2);
+    // World.playRecord: suena desde el centro del bloque
+    Music::playRecord(record == BlockType::RECORD_13 ? "13" : "cat", (float)gx - SIZE_X / 2.0f + 0.5f, (float)gy - 1.0f, (float)gz - SIZE_Z / 2.0f + 0.5f, gx, gy, gz);
     return true;
 }
 
 BlockType jukeboxEject(const ChunkManager& cm, int gx, int gy, int gz) {
     const BlockType r = jukeboxRecord(cm, gx, gy, gz);
-    if (r != BlockType::AIR) put(cm, gx, gy, gz, BlockType::JUKEBOX, 0);
+    if (r != BlockType::AIR) {
+        put(cm, gx, gy, gz, BlockType::JUKEBOX, 0);
+        Music::stopRecordAt(gx, gy, gz);   // BlockJukeBox.ejectRecord: playRecord(null) calla el disco
+    }
     return r;
 }
 
