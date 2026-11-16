@@ -216,9 +216,11 @@ static int s_pages = 1;
 int CraftingScreen::visibleCount = 0;
 
 void CraftingScreen::show(const Inventory& inventory, int selectedRecipe, bool usingTable) {
+    BG_PALETTE_SUB[0] = 0;   // el menu de pausa (8 bits) deja su color 0 en la paleta: el fondo de la pantalla de 16 bits pasa a negro
     if (bgId == -1) {
         videoSetModeSub(MODE_5_2D | DISPLAY_BG3_ACTIVE);
         vramSetBankC(VRAM_C_SUB_BG);
+        BG_PALETTE_SUB[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
         bgId = bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
         GameplayHotbar::invalidate();
         InventoryScreen::invalidate();
@@ -297,6 +299,7 @@ bool CraftingScreen::changePage(int delta) {
 void CraftingScreen::showTop(int selectedRecipe, bool usingTable) {
     videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
     vramSetBankB(VRAM_B_MAIN_BG_0x06000000);
+    BG_PALETTE[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
     int bgIdTop = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 
     // Si hay una receta seleccionada, la plantilla depende de LO QUE
@@ -425,6 +428,7 @@ void CraftingScreen::showFurnaceTop(bool lit, const FurnaceData* data, int selec
     const bool idle = !data || data->burnTime <= 0;
     videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
     vramSetBankB(VRAM_B_MAIN_BG_0x06000000);
+    BG_PALETTE[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
     int bgIdTop = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 
     dmaCopy(idle ? (const void*)topfurnace2Bitmap : (const void*)topfurnace1Bitmap, bgGetGfxPtr(bgIdTop), 256 * 192 * 2);
@@ -480,6 +484,7 @@ static void getChestSlotPosition(int rows, int slot, int& outX, int& outY) {
 void CraftingScreen::showChestTop(const ChestView& view, int selectedSlot) {
     videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
     vramSetBankB(VRAM_B_MAIN_BG_0x06000000);
+    BG_PALETTE[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
     int bgIdTop = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 
     const void* bitmap = view.dispenser ? (const void*)dispenserguiBitmap : ((view.rows == 6) ? (const void*)largechestBitmap : (const void*)normalchestBitmap);

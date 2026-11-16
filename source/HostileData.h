@@ -21,6 +21,7 @@ struct Mob : public Animal {
     // EntityCreeper
     int ignite = 0, lastIgnite = 0;   // timeSinceIgnited, lastActiveTime (llega a 30 y explota)
     int creeperState = -1;            // dataWatcher 16: 1 = encendido, -1 = apagado
+    bool powered = false;             // dataWatcher 17: cargado por un rayo (onStruckByLightning): explota con fuerza 6 en vez de 3
 
     // EntityPigZombie
     int anger = 0;                    // angerLevel

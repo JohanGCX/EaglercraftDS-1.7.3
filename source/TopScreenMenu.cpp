@@ -16,6 +16,7 @@ void TopScreenMenu::init() {
 
     videoSetMode(MODE_5_2D | DISPLAY_BG3_ACTIVE);
     vramSetBankB(VRAM_B_MAIN_BG_0x06000000); // antes VRAM_B_MAIN_BG (offset incorrecto)
+    BG_PALETTE[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
     bgId = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 
     decompress(topgenericbgBitmap, bgGetGfxPtr(bgId), LZ77Vram);

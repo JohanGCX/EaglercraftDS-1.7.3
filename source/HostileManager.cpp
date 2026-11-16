@@ -328,6 +328,7 @@ namespace {
             if (s_mobs[i].active) continue;
             Mob& m = s_mobs[i];
             HostileAI::setup(m, kind, slimeSize);
+            m.powered = false;   // la ranura pudo ser de un creeper cargado
             m.active = true;
             m.x = m.prevX = x; m.y = m.prevY = y; m.z = m.prevZ = z;
             m.yaw = m.prevYaw = m.bodyYaw = m.prevBodyYaw = s_rng.nextFloat() * 360.0f;
@@ -718,6 +719,7 @@ void HostileManager::lightning(double x, double y, double z) {
         if (!m.active || m.hs.health <= 0) continue;
         if (fabs(m.x - x) > 3.0 + m.width * 0.5 || fabs(m.z - z) > 3.0 + m.width * 0.5 || m.y < y - 3.0 - m.height || m.y > y + 9.0) continue;
         if (m.hkind == H_GHAST || m.hkind == H_PIGZOMBIE) continue;   // inmunes al fuego
+        if (m.hkind == H_CREEPER) m.powered = true;   // EntityCreeper.onStruckByLightning: queda cargado
         AnimalAI::damage(m, 5, false, 0.0, 0.0);
         if (m.fire <= 0) m.fire = 300;
         collectDeath(m);

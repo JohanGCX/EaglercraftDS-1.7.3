@@ -7,9 +7,11 @@
 int GameplayHotbar::bgId = -1;
 
 void GameplayHotbar::show() {
+    BG_PALETTE_SUB[0] = 0;   // el menu de pausa (8 bits) deja su color 0 en la paleta: el fondo de la pantalla de 16 bits pasa a negro
     if (bgId == -1) {
         videoSetModeSub(MODE_5_2D | DISPLAY_BG3_ACTIVE);
         vramSetBankC(VRAM_C_SUB_BG);
+        BG_PALETTE_SUB[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
         bgId = bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
     }
 

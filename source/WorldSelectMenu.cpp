@@ -56,6 +56,7 @@ static void rebuildWorldList() {
 void WorldSelectMenu::init() {
     videoSetModeSub(MODE_5_2D | DISPLAY_BG3_ACTIVE);
     vramSetBankC(VRAM_C_SUB_BG);
+    BG_PALETTE_SUB[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
     bgId = bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 
     rebuildWorldList();

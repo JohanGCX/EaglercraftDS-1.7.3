@@ -8,7 +8,7 @@ A from-scratch port of Minecraft Beta 1.7.3 to the Nintendo DS, written in C++ w
 ![Platform](https://img.shields.io/badge/platform-Nintendo%20DS%20%2F%20DSi-red)
 ![Toolchain](https://img.shields.io/badge/toolchain-devkitARM%20%2B%20libnds-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/version-1.0-brightgreen)
+![Status](https://img.shields.io/badge/version-1.0.1-brightgreen)
 
 </div>
 
@@ -28,7 +28,7 @@ Java code could be consulted (via the decompiled Eaglercraft sources), the logic
 and wherever the DS could not keep up, the deviation is deliberate and documented in
 [Known differences](#known-differences-from-beta-173).
 
-> **Status:** 1.0. The game is feature-complete for what the hardware can carry and has been tested on
+> **Status:** 1.0.1. The game is feature-complete for what the hardware can carry and has been tested on
 > emulators and real hardware. Bug reports are very welcome.
 
 ## Features
@@ -40,6 +40,7 @@ and wherever the DS could not keep up, the deviation is deliberate and documente
 - The **Nether**: obsidian portals, a separate dimension with its own terrain, lava seas and a portal-linked 8:1 coordinate scale
 - Day/night cycle, weather (rain, snow, thunderstorms and lightning), clouds, and a sun and moon in the sky (DS and DSi chunk modes)
 - Beta-style fluids: flowing water and lava, obsidian and cobblestone generation, falling sand and gravel
+- Living world: grass spreads, cactus and sugar cane grow, mushrooms spread, and plants without light or ground break
 
 **Gameplay**
 - 36-slot inventory with persistent tool durability, 2×2 and 3×3 crafting, furnaces, chests, dispensers, armor and health
@@ -51,7 +52,7 @@ and wherever the DS could not keep up, the deviation is deliberate and documente
 
 **Mobs**
 - Pigs, cows, sheep (with dyeable wool), chickens, squid, wolves (tameable)
-- Zombies, skeletons, spiders, creepers, zombie pigmen, ghasts and slimes, with the Beta pathfinding approach (A\*, capped for the DS)
+- Zombies, skeletons, spiders, creepers (charged by lightning), zombie pigmen, ghasts and slimes, with the Beta pathfinding approach (A\*, capped for the DS)
 
 **Console-specific**
 - Dual-screen UI: the game on the top screen, hotbar, inventory, crafting and menus on the touch screen
@@ -59,6 +60,8 @@ and wherever the DS could not keep up, the deviation is deliberate and documente
 - Three chunk modes — **fast**, **ds** and **dsi** — to trade view distance for speed (see [Performance](#performance))
 - World selection, multiple save slots, custom seeds, and settings that persist on the SD card
 - Beta texture packs: drop the pack's `.zip` in `/mcdsefiles/texturepacks/` and pick it from the main menu
+- Custom skins (classic 64 × 32 and modern 64 × 64): drop the `.png` in `/mcdsefiles/skins/` and pick it from the main menu
+- Background music and jukebox records ("13" and "cat") built into the game
 - Built-in profiler and debug screen for developers (off by default)
 
 ## Requirements

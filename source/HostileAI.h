@@ -190,7 +190,7 @@ namespace HostileAI {
                 if (s.ignite == 0) Sound::fuse((float)s.x, (float)s.y, (float)s.z);   // siseo al encenderse
                 ++s.ignite;
                 if (s.ignite >= 30) {
-                    sink.explode(s, 3.0f);
+                    sink.explode(s, s.powered ? 6.0f : 3.0f);   // EntityCreeper: getPowered() ? 6 : 3
                     s.active = false;                                       // setEntityDead
                     return;
                 }

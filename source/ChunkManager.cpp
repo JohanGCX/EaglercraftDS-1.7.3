@@ -1196,6 +1196,84 @@ namespace {
         return c->getBlockType(gx - cx * WorldConfig::SIZE_X, gy, gz - cz * WorldConfig::SIZE_Z);
     }
 
+    // BlockCactus / BlockReed.updateTick (Beta 1.7.3): con aire encima y una columna de menos de 3, la metadata sube 1 por tick aleatorio y al
+    // pasar de 15 crece un bloque arriba. Aqui sin metadata (cada cambio rehace la malla del chunk): 1 de cada 16 ticks, el mismo promedio.
+    // Cactus: si el bloque nuevo toca algo solido a los lados (BlockCactus.canBlockStay), se rompe y suelta el cactus (asi funcionan las granjas).
+    void plantGrowTick(ChunkManager& cm, BlockType t, int gx, int gy, int gz, unsigned int& rng) {
+        if (gy + 1 >= WorldConfig::SIZE_Y || typeAtGlobal(cm, gx, gy + 1, gz) != BlockType::AIR) return;
+        int h = 1;
+        while (h < 3 && typeAtGlobal(cm, gx, gy - h, gz) == t) h++;
+        if (h >= 3) return;
+        rng = rng * 1664525u + 1013904223u;
+        if (((rng >> 8) & 15) != 0) return;
+        if (t == BlockType::CACTUS) {
+            static const int D[4][2] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+            for (int d = 0; d < 4; d++) {
+                const BlockType n = typeAtGlobal(cm, gx + D[d][0], gy + 1, gz + D[d][1]);
+                if (isNormalCube(n) || n == BlockType::GLASS || isLeavesBlock(n) || n == BlockType::CACTUS) {
+                    PendingDrops::push((float)gx - WorldConfig::SIZE_X / 2.0f + 0.5f, (float)gy, (float)gz - WorldConfig::SIZE_Z / 2.0f + 0.5f, BlockType::CACTUS);
+                    return;
+                }
+            }
+        }
+        cm.setBlockGlobal(gx, gy + 1, gz, t);
+    }
+
+    // World.getFullBlockLightValue: la luz del cielo sin restar la hora, o la de bloque, la mayor. sky15 = le da el cielo (canBlockSeeTheSky)
+    int fullLightAtGlobal(const ChunkManager& cm, int gx, int gy, int gz, bool& sky15) {
+        sky15 = false;
+        if (gy >= WorldConfig::SIZE_Y) { sky15 = true; return 15; }
+        if (gy < 0) return 0;
+        const int cx = gx >= 0 ? gx / WorldConfig::SIZE_X : -((-gx + WorldConfig::SIZE_X - 1) / WorldConfig::SIZE_X);
+        const int cz = gz >= 0 ? gz / WorldConfig::SIZE_Z : -((-gz + WorldConfig::SIZE_Z - 1) / WorldConfig::SIZE_Z);
+        Chunk* c = cm.getChunkByChunkCoord(cx, cz);
+        if (!c || !c->isGenerationComplete()) return -1;
+        const int xi = gx - cx * WorldConfig::SIZE_X, zi = gz - cz * WorldConfig::SIZE_Z;
+        const int sky = (int)c->getSkyLight(xi, gy, zi), bl = (int)c->getBlockLight(xi, gy, zi);
+        sky15 = sky >= 15;
+        return sky > bl ? sky : bl;
+    }
+
+    // BlockMushroom.canBlockStay: luz (sin la hora) menor a 13 y un bloque opaco debajo
+    bool mushroomCanStay(const ChunkManager& cm, int gx, int gy, int gz) {
+        if (gy < 1 || gy >= WorldConfig::SIZE_Y) return false;
+        bool sky;
+        const int l = fullLightAtGlobal(cm, gx, gy, gz, sky);
+        return l >= 0 && l < 13 && isNormalCube(typeAtGlobal(cm, gx, gy - 1, gz));
+    }
+
+    // BlockMushroom.updateTick: 1 de cada 100 ticks aleatorios pone otro hongo igual en una celda vecina (x y z +-1, y de -1 a +1) si esta libre y le sirve
+    void mushroomTick(ChunkManager& cm, BlockType t, int gx, int gy, int gz, unsigned int& rng) {
+        auto next = [&](unsigned int n) { rng = rng * 1664525u + 1013904223u; return (int)((rng >> 8) % n); };
+        if (next(100) != 0) return;
+        const int x = gx + next(3) - 1;
+        const int y = gy + next(2) - next(2);
+        const int z = gz + next(3) - 1;
+        if (typeAtGlobal(cm, x, y, z) == BlockType::AIR && mushroomCanStay(cm, x, y, z)) cm.setBlockGlobal(x, y, z, t);
+    }
+
+    // BlockFlower.updateTick -> func_268_h (flores, brotes, pasto alto y arbusto seco): si ya no tiene luz 8 (o cielo) o su suelo, se rompe y
+    // suelta lo suyo. Devuelve true si la planta se cayo.
+    bool plantStayTick(ChunkManager& cm, BlockType t, int gx, int gy, int gz, unsigned int& rng) {
+        if (gy < 1) return false;
+        bool sky;
+        const int l = fullLightAtGlobal(cm, gx, gy, gz, sky);
+        if (l < 0) return false;
+        const BlockType below = typeAtGlobal(cm, gx, gy - 1, gz);
+        const bool ground = (t == BlockType::DEAD_BUSH) ? below == BlockType::SAND   // BlockDeadBush: sobre arena
+                          : (below == BlockType::GRASS || below == BlockType::DIRT || below == BlockType::FARMLAND);
+        if (ground && (l >= 8 || sky)) return false;
+        BlockType drop = BlockType::AIR;
+        if (t == BlockType::TALLGRASS) {   // BlockTallGrass.idDropped: 1 de cada 8, semillas
+            rng = rng * 1664525u + 1013904223u;
+            if (((rng >> 8) & 7) == 0) drop = BlockType::SEEDS;
+        } else if (t != BlockType::DEAD_BUSH) drop = getDropType(t);   // el arbusto seco no suelta nada
+        if (drop != BlockType::AIR)
+            PendingDrops::push((float)gx - WorldConfig::SIZE_X / 2.0f + 0.5f, (float)gy - 1.0f, (float)gz - WorldConfig::SIZE_Z / 2.0f + 0.5f, drop);
+        cm.setBlockGlobal(gx, gy, gz, BlockType::AIR);
+        return true;
+    }
+
     // BlockGrass.updateTick (Beta 1.7.3): tapado (luz < 4 encima y un bloque opaco) vuelve a tierra 1 de cada 4 veces; con luz 9 o mas encima,
     // prueba una celda al azar de 3 x 5 x 3 (de 3 abajo a 1 arriba) y si es tierra con luz 4 o mas y nada opaco encima, se vuelve pasto
     void grassTick(ChunkManager& cm, int gx, int gy, int gz, unsigned int& rng) {
@@ -1240,8 +1318,13 @@ void ChunkManager::tickLiquids() {
                 sim.lavaRandomTick(c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi);
             } else if (rt == BlockType::CROPS) {   // BlockCrops.updateTick: se mantiene en pie y crece
                 Partial::cropsTick(*this, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi);
-            } else if (isSapling(rt)) {   // BlockSapling.updateTick: crece con luz suficiente
-                Trees::saplingTick(*this, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi);
+            } else if (isSapling(rt)) {   // BlockSapling.updateTick: super.updateTick (sin luz o suelo se cae) y despues crece con luz suficiente
+                const int sgx = c->getChunkX() * WorldConfig::SIZE_X + xi, sgz = c->getChunkZ() * WorldConfig::SIZE_Z + zi;
+                if (!plantStayTick(*this, rt, sgx, yi, sgz, s_randomTickRng)) Trees::saplingTick(*this, sgx, yi, sgz);
+            } else if (rt == BlockType::DANDELION || rt == BlockType::ROSE || rt == BlockType::TALLGRASS || rt == BlockType::DEAD_BUSH) {
+                plantStayTick(*this, rt, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi, s_randomTickRng);
+            } else if (rt == BlockType::MUSHROOM_RED || rt == BlockType::MUSHROOM_BROWN) {   // se extienden (BlockMushroom no revisa si se cae)
+                mushroomTick(*this, rt, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi, s_randomTickRng);
             } else if (isLeavesBlock(rt)) {   // BlockLeaves.updateTick: las marcadas se caen si no hay tronco cerca
                 if (c->getLiquidMeta(xi, yi, zi) & 8) Trees::leafTick(*this, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi);
             } else if (rt == BlockType::ICE || rt == BlockType::SNOW_LAYER || rt == BlockType::SNOW_BLOCK) {
@@ -1255,6 +1338,8 @@ void ChunkManager::tickLiquids() {
                     }
                     setBlockGlobal(mgx, yi, mgz, rt == BlockType::ICE ? BlockType::WATER : BlockType::AIR);
                 }
+            } else if (rt == BlockType::CACTUS || rt == BlockType::SUGAR_CANE) {   // crecen hasta 3 bloques de alto
+                plantGrowTick(*this, rt, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi, s_randomTickRng);
             } else if (rt == BlockType::GRASS) {   // BlockGrass.updateTick: el pasto se extiende a la tierra de al lado (o muere tapado)
                 grassTick(*this, c->getChunkX() * WorldConfig::SIZE_X + xi, yi, c->getChunkZ() * WorldConfig::SIZE_Z + zi, s_randomTickRng);
             } else if (rt == BlockType::FARMLAND) {   // BlockFarmland.updateTick: se hidrata o se seca (1 de cada 5 ticks aleatorios)

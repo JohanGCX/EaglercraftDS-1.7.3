@@ -14,6 +14,7 @@ void PauseScreen::show() {
     dmaCopy(pauseMenuPal, BG_PALETTE_SUB, pauseMenuPalLen);
     decompress(pauseMenuBitmap, bgGetGfxPtr(bgId), LZ77Vram);
 #else
+    BG_PALETTE_SUB[0] = 0;   // fondo (backdrop) negro: mientras se escribe la imagen se ve negro, no el magenta del color 0 de otra paleta
     bgId = bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
     if (pauseMenuBitmapLen == 256 * 192 * 2) dmaCopy(pauseMenuBitmap, bgGetGfxPtr(bgId), 256 * 192 * 2);   // sin comprimir
     else decompress(pauseMenuBitmap, bgGetGfxPtr(bgId), LZ77Vram);                                          // comprimida (-gzl)

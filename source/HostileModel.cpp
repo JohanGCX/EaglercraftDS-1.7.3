@@ -41,6 +41,7 @@ namespace {
     // ---- ModelCreeper ----
     enum { C_HEAD, C_BODY, C_LEG1, C_LEG2, C_LEG3, C_LEG4, C_COUNT };
     Part s_creeper[C_COUNT];
+    Part s_creeperAura[C_COUNT];   // ModelCreeper(2.0F): la misma forma inflada 2 pixeles, para el aura del creeper cargado
     // ---- ModelSpider ----
     enum { S_HEAD, S_NECK, S_BODY, S_LEG1, S_LEG2, S_LEG3, S_LEG4, S_LEG5, S_LEG6, S_LEG7, S_LEG8, S_COUNT };
     Part s_spider[S_COUNT];
@@ -138,6 +139,47 @@ namespace {
         drawPart(s_creeper[C_LEG2], b, 0.0f, 0.0f);
         drawPart(s_creeper[C_LEG3], b, 0.0f, 0.0f);
         drawPart(s_creeper[C_LEG4], a, 0.0f, 0.0f);
+    }
+
+    // Aura del creeper cargado (RenderCreeper con armor/power.png): sin textura, para no ocupar VRAM. Cada cara se parte en 4 franjas y se
+    // dibujan 2 (los huecos son las otras), con un degradado de blanco a azul; cada pocos ticks se alternan las franjas, como si chisporroteara.
+    void drawAuraPart(const Part& p, float rx, float ry, float rz, int phase) {
+        const int N = 4;
+        glPushMatrix();
+        glTranslatef(p.pointX / 16.0f, p.pointY / 16.0f, p.pointZ / 16.0f);
+        if (rz != 0.0f) glRotatef(rz * RAD_TO_DEG, 0.0f, 0.0f, 1.0f);
+        if (ry != 0.0f) glRotatef(ry * RAD_TO_DEG, 0.0f, 1.0f, 0.0f);
+        if (rx != 0.0f) glRotatef(rx * RAD_TO_DEG, 1.0f, 0.0f, 0.0f);
+        glBegin(GL_QUADS);
+        for (int f = 0; f < 6; f++) {
+            const Quad& q = p.quads[f];
+            for (int i = 0; i < N; i++) {
+                if (((i + phase + f) & 1) != 0) continue;   // hueco
+                // franja i: a lo largo del borde v0->v1 (y del opuesto v3->v2)
+                const int a = i, b = i + 1;
+                const s16 x0 = (s16)(q.px[0] + (q.px[1] - q.px[0]) * a / N), y0 = (s16)(q.py[0] + (q.py[1] - q.py[0]) * a / N), z0 = (s16)(q.pz[0] + (q.pz[1] - q.pz[0]) * a / N);
+                const s16 x1 = (s16)(q.px[0] + (q.px[1] - q.px[0]) * b / N), y1 = (s16)(q.py[0] + (q.py[1] - q.py[0]) * b / N), z1 = (s16)(q.pz[0] + (q.pz[1] - q.pz[0]) * b / N);
+                const s16 x2 = (s16)(q.px[3] + (q.px[2] - q.px[3]) * b / N), y2 = (s16)(q.py[3] + (q.py[2] - q.py[3]) * b / N), z2 = (s16)(q.pz[3] + (q.pz[2] - q.pz[3]) * b / N);
+                const s16 x3 = (s16)(q.px[3] + (q.px[2] - q.px[3]) * a / N), y3 = (s16)(q.py[3] + (q.py[2] - q.py[3]) * a / N), z3 = (s16)(q.pz[3] + (q.pz[2] - q.pz[3]) * a / N);
+                glColor3b(255, 255, 255); glVertex3v16(x0, y0, z0);
+                glColor3b(90, 140, 255);  glVertex3v16(x1, y1, z1);
+                glColor3b(90, 140, 255);  glVertex3v16(x2, y2, z2);
+                glColor3b(255, 255, 255); glVertex3v16(x3, y3, z3);
+            }
+        }
+        glEnd();
+        glPopMatrix(1);
+    }
+
+    void drawCreeperAura(float swing, float amount, float headYaw, float headPitch, int phase) {
+        drawAuraPart(s_creeperAura[C_HEAD], headPitch, headYaw, 0.0f, phase);
+        drawAuraPart(s_creeperAura[C_BODY], 0.0f, 0.0f, 0.0f, phase);
+        const float a = cosf(swing * 0.6662f) * 1.4f * amount;
+        const float b = cosf(swing * 0.6662f + PI_F) * 1.4f * amount;
+        drawAuraPart(s_creeperAura[C_LEG1], a, 0.0f, 0.0f, phase);
+        drawAuraPart(s_creeperAura[C_LEG2], b, 0.0f, 0.0f, phase);
+        drawAuraPart(s_creeperAura[C_LEG3], b, 0.0f, 0.0f, phase);
+        drawAuraPart(s_creeperAura[C_LEG4], a, 0.0f, 0.0f, phase);
     }
 
     // ModelSpider.setRotationAngles. headOnly: solo la cabeza (los ojos brillantes son una zona de la textura de la cabeza)
@@ -299,6 +341,12 @@ void HostileModel::init() {
     make(s_creeper[C_LEG2], 0, 16,  -2.0f, 0.0f, -2.0f, 4, 6, 4, 0.0f, false,   2.0f, 16.0f,  4.0f);
     make(s_creeper[C_LEG3], 0, 16,  -2.0f, 0.0f, -2.0f, 4, 6, 4, 0.0f, false,  -2.0f, 16.0f, -4.0f);
     make(s_creeper[C_LEG4], 0, 16,  -2.0f, 0.0f, -2.0f, 4, 6, 4, 0.0f, false,   2.0f, 16.0f, -4.0f);
+    make(s_creeperAura[C_HEAD], 0, 0,   -4.0f, -8.0f, -4.0f, 8, 8, 8, 2.0f, false,  0.0f, 4.0f, 0.0f);
+    make(s_creeperAura[C_BODY], 16, 16, -4.0f, 0.0f, -2.0f, 8, 12, 4, 2.0f, false,  0.0f, 4.0f, 0.0f);
+    make(s_creeperAura[C_LEG1], 0, 16,  -2.0f, 0.0f, -2.0f, 4, 6, 4, 2.0f, false,  -2.0f, 16.0f,  4.0f);
+    make(s_creeperAura[C_LEG2], 0, 16,  -2.0f, 0.0f, -2.0f, 4, 6, 4, 2.0f, false,   2.0f, 16.0f,  4.0f);
+    make(s_creeperAura[C_LEG3], 0, 16,  -2.0f, 0.0f, -2.0f, 4, 6, 4, 2.0f, false,  -2.0f, 16.0f, -4.0f);
+    make(s_creeperAura[C_LEG4], 0, 16,  -2.0f, 0.0f, -2.0f, 4, 6, 4, 2.0f, false,   2.0f, 16.0f, -4.0f);
     // ModelSpider (var2 = 15)
     make(s_spider[S_HEAD], 32, 4,   -4.0f, -4.0f, -8.0f, 8, 8, 8, 0.0f, false,   0.0f, 15.0f, -3.0f);
     make(s_spider[S_NECK], 0, 0,    -3.0f, -3.0f, -3.0f, 6, 6, 6, 0.0f, false,   0.0f, 15.0f, 0.0f);
@@ -465,6 +513,13 @@ void HostileModel::draw(const Mob& m, float partialTick, unsigned char lightLeve
             glTranslatef(0.0f, -0.5f, 0.0f);
             drawCreeper(swing, amount, hy, hp);
             glPopMatrix(1);
+        }
+
+        // creeper cargado por un rayo: el aura (translucida, sin textura ni luz, como el power.png de la Beta que brilla siempre)
+        if (m.hkind == H_CREEPER && m.powered && m.hs.deathTime == 0) {
+            glPolyFmt(POLY_ALPHA(14) | POLY_CULL_NONE | POLY_ID(11));
+            glBindTexture(0, 0);
+            drawCreeperAura(swing, amount, hy, hp, ((int)(ticks * 0.5f)) & 1);
         }
     glPopMatrix(1);
 
