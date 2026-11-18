@@ -49,8 +49,9 @@ bool GameplayHotbar::isThrowTouched(int touchX, int touchY) {
     return isButton4Touched(touchX, touchY);
 }
 
+// Con el inventario abierto, Throw es el mismo boton 4 de la fila de abajo que en la barra (antes estaba en una fila extra encima, que ya no existe)
 bool GameplayHotbar::isInventoryThrowTouched(int touchX, int touchY) {
-    return touchX >= 194 && touchX <= 253 && touchY >= 134 && touchY <= 160;
+    return isButton4Touched(touchX, touchY);
 }
 
 // Touch zone y minibuttons medidos sobre ingamesubscreen.png

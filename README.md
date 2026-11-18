@@ -8,7 +8,7 @@ A from-scratch port of Minecraft Beta 1.7.3 to the Nintendo DS, written in C++ w
 ![Platform](https://img.shields.io/badge/platform-Nintendo%20DS%20%2F%20DSi-red)
 ![Toolchain](https://img.shields.io/badge/toolchain-devkitARM%20%2B%20libnds-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/version-1.0.1-brightgreen)
+![Status](https://img.shields.io/badge/version-1.0.2-brightgreen)
 
 </div>
 
@@ -28,7 +28,7 @@ Java code could be consulted (via the decompiled Eaglercraft sources), the logic
 and wherever the DS could not keep up, the deviation is deliberate and documented in
 [Known differences](#known-differences-from-beta-173).
 
-> **Status:** 1.0.1. The game is feature-complete for what the hardware can carry and has been tested on
+> **Status:** 1.0.2. The game is feature-complete for what the hardware can carry and has been tested on
 > emulators and real hardware. Bug reports are very welcome.
 
 ## Features
